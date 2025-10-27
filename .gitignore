@@ -41,6 +41,10 @@ build/Release
 node_modules/
 jspm_packages/
 
+# Package manager lock files (using yarn)
+package-lock.json
+npm-shrinkwrap.json
+
 # Snowpack dependency directory (https://snowpack.dev/)
 web_modules/
 
@@ -137,3 +141,71 @@ dist
 # Vite logs files
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
+
+# Hardhat files
+cache/
+artifacts/
+typechain/
+typechain-types/
+
+# Hardhat network files
+.openzeppelin/
+.openzeppelin/*.json
+
+# Solidity files
+*.sol.bak
+
+# Coverage reports
+coverage.json
+coverage/
+
+# Gas reports
+gas-report.txt
+
+# Environment variables
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Hardhat Ignition files
+ignitions/deployments/chain-31337/
+
+# Foundry files (if using Foundry alongside Hardhat)
+out/
+broadcast/
+cache/
+lib/
+
+# Slither static analysis
+.slither/
+
+# Mythril static analysis
+.mythril/
+
+# Solhint
+.solhint.json
+
+# Tenderly
+.tenderly/
+
+# Hardhat console logs
+console.log
+
+# Deployment artifacts
+deployments/
+
+# NOTE: deployments.json is NOT ignored - it should be committed!
+# It contains public contract addresses, not secrets
+
+# Test artifacts
+test-results/
+coverage/
+
+# Temporary files
+*.tmp
+*.temp
+
+# AI Agent
+.claude/
+.serena/
