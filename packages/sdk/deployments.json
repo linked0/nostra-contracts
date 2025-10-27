@@ -1,0 +1,50 @@
+{
+  "localhost": {
+    "chainId": 31337,
+    "contracts": {
+      "ConditionalTokens": "",
+      "MarketFactory": "",
+      "CTFExchange": "",
+      "ResolutionOracle": "",
+      "MockUSDC": ""
+    }
+  },
+  "polygon": {
+    "chainId": 137,
+    "contracts": {
+      "ConditionalTokens": "",
+      "MarketFactory": "",
+      "CTFExchange": "",
+      "ResolutionOracle": ""
+    }
+  },
+  "polygonAmoy": {
+    "chainId": 80002,
+    "contracts": {
+      "ConditionalTokens": "",
+      "MarketFactory": "",
+      "CTFExchange": "",
+      "ResolutionOracle": "",
+      "MockUSDC": ""
+    }
+  },
+  "bsc": {
+    "chainId": 56,
+    "contracts": {
+      "ConditionalTokens": "",
+      "MarketFactory": "",
+      "CTFExchange": "",
+      "ResolutionOracle": ""
+    }
+  },
+  "bscTestnet": {
+    "chainId": 97,
+    "contracts": {
+      "ConditionalTokens": "0x48614d07fDF68aA1Fb5963F6091eeB4BbeA2027B",
+      "MarketFactory": "0xD8812ED5dADE5e00Ed2d5c060BeCC5aa83a56770",
+      "ResolutionOracle": "0x11D1986fC7B8972098C8E28F1Da1a26FF6737e0f",
+      "CTFExchange": "0x38BcD7680a2FDA57EfE6307dE28202D8Ea561D99",
+      "MockUSDC": "0x33D410066af177969Adb3Dd480869eaf2EF434F9"
+    }
+  }
+}
