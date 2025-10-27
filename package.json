@@ -1,0 +1,41 @@
+{
+  "name": "nostra-prediction-market",
+  "version": "1.0.0",
+  "description": "Nostra Prediction Market Platform - Monorepo",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "yarn workspaces run build",
+    "clean": "yarn workspaces run clean && rm -rf node_modules",
+    "test": "yarn workspace @nostra/contracts test",
+    "test:unit": "yarn workspace @nostra/contracts test:unit",
+    "test:integration": "yarn workspace @nostra/contracts test:integration",
+    "compile": "yarn workspace @nostra/contracts compile",
+    "deploy:local": "yarn workspace @nostra/contracts deploy:local",
+    "deploy:polygon": "yarn workspace @nostra/contracts deploy:polygon",
+    "deploy:polygon-amoy": "npx hardhat run packages/contracts/scripts/deploy/deploy.ts --network polygonAmoy",
+    "deploy:bsc": "npx hardhat run packages/contracts/scripts/deploy/deploy-bsc.ts --network bsc",
+    "deploy:bsc-testnet": "npx hardhat run packages/contracts/scripts/deploy/deploy-bsc-testnet.ts --network bscTestnet",
+    "sdk:build": "yarn workspace @nostra/sdk build",
+    "sdk:dev": "yarn workspace @nostra/sdk dev",
+    "validate:sdk": "npx ts-node packages/contracts/scripts/utils/validate-sdk-addresses.ts"
+  },
+  "keywords": [
+    "prediction-market",
+    "defi",
+    "ethereum",
+    "polygon",
+    "ctf",
+    "polymarket",
+    "monorepo"
+  ],
+  "author": "Nostra Team",
+  "license": "MIT",
+  "devDependencies": {},
+  "engines": {
+    "node": ">=18.0.0",
+    "yarn": ">=1.22.0"
+  }
+}
