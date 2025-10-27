@@ -209,3 +209,5 @@ coverage/
 # AI Agent
 .claude/
 .serena/
+
+.DS_Store
