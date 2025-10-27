@@ -1,0 +1,54 @@
+# Source files (only publish compiled dist/)
+src/
+tsconfig.json
+*.ts
+!*.d.ts
+
+# Development files
+node_modules/
+.pnpm-lock.yaml
+yarn.lock
+package-lock.json
+
+# Build artifacts
+*.tsbuildinfo
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Testing
+coverage/
+.nyc_output/
+*.test.ts
+*.spec.ts
+__tests__/
+test/
+
+# Documentation (except README.md)
+docs/
+PUBLISHING.md
+CONTRIBUTING.md
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+.travis.yml
+
+# Misc
+*.log
+.env
+.env.*
+!.env.example

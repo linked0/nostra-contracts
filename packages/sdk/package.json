@@ -1,0 +1,52 @@
+{
+  "name": "@nostra-dev/sdk",
+  "version": "1.0.0",
+  "description": "TypeScript SDK for interacting with Nostra Prediction Market contracts",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc && yarn copy:deployments",
+    "copy:deployments": "cp ../../deployments.json ./deployments.json",
+    "dev": "tsc --watch",
+    "clean": "rm -rf dist deployments.json",
+    "prepublishOnly": "yarn run build",
+    "yalc:publish": "yarn build && yalc publish",
+    "yalc:push": "yarn build && yalc push",
+    "release:patch": "yarn version --patch && yarn build && yarn publish --access public",
+    "release:minor": "yarn version --minor && yarn build && yarn publish --access public",
+    "release:major": "yarn version --major && yarn build && yarn publish --access public",
+    "list:addresses": "ts-node scripts/list-addresses.ts"
+  },
+  "keywords": [
+    "nostra",
+    "prediction-market",
+    "sdk",
+    "ethereum",
+    "polygon",
+    "web3"
+  ],
+  "author": "Sapiens AI",
+  "homepage": "https://nostra.market",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sapiens-ai/nostra-contracts"
+  },
+  "license": "MIT",
+  "files": [
+    "dist",
+    "README.md",
+    "deployments.json"
+  ],
+  "dependencies": {
+    "dotenv": "^16.3.1",
+    "ethers": "^6.9.0"
+  },
+  "devDependencies": {
+    "@types/minimatch": "^6.0.0",
+    "@types/node": "^20.10.6",
+    "typescript": "^5.3.3"
+  },
+  "peerDependencies": {
+    "ethers": "^6.0.0"
+  }
+}
