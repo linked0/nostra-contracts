@@ -6,7 +6,7 @@
  */
 
 import { readDeployments } from './deployment-manager';
-import { Network, getContractAddress, getNetworkAddresses, hasDeployments } from '@nostra/sdk';
+import { Network, getContractAddress, getNetworkAddresses, hasDeployments } from '@nostra-dev/sdk';
 
 interface ValidationResult {
   network: string;

@@ -95,6 +95,12 @@ async function main() {
   await setExchangeTx.wait();
   console.log("✅ Exchange set successfully");
 
+  // Add MarketFactory as admin of CTFExchange
+  console.log("\n🔐 Adding MarketFactory as admin of CTFExchange...");
+  const addAdminTx = await ctfExchange.addAdmin(marketFactoryAddress);
+  await addAdminTx.wait();
+  console.log("✅ MarketFactory added as admin");
+
   // Add deployer as test resolver
   console.log("\n👥 Adding deployer as test resolver...");
   const addResolverTx = await resolutionOracle.addResolver(deployer.address);

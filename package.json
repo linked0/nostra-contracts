@@ -3,9 +3,19 @@
   "version": "1.0.0",
   "description": "Nostra Prediction Market Platform - Monorepo",
   "private": true,
-  "workspaces": [
-    "packages/*"
-  ],
+  "workspaces": {
+    "packages": [
+      "packages/*"
+    ],
+    "nohoist": [
+      "**/hardhat",
+      "**/hardhat/**",
+      "**/@nomicfoundation/**",
+      "**/typechain",
+      "**/typechain/**",
+      "**/@typechain/**"
+    ]
+  },
   "scripts": {
     "build": "yarn workspaces run build",
     "clean": "yarn workspaces run clean && rm -rf node_modules",
@@ -15,12 +25,22 @@
     "compile": "yarn workspace @nostra/contracts compile",
     "deploy:local": "yarn workspace @nostra/contracts deploy:local",
     "deploy:polygon": "yarn workspace @nostra/contracts deploy:polygon",
-    "deploy:polygon-amoy": "npx hardhat run packages/contracts/scripts/deploy/deploy.ts --network polygonAmoy",
-    "deploy:bsc": "npx hardhat run packages/contracts/scripts/deploy/deploy-bsc.ts --network bsc",
-    "deploy:bsc-testnet": "npx hardhat run packages/contracts/scripts/deploy/deploy-bsc-testnet.ts --network bscTestnet",
-    "sdk:build": "yarn workspace @nostra/sdk build",
-    "sdk:dev": "yarn workspace @nostra/sdk dev",
-    "validate:sdk": "npx ts-node packages/contracts/scripts/utils/validate-sdk-addresses.ts"
+    "deploy:polygon-amoy": "yarn workspace @nostra/contracts deploy:polygon-amoy",
+    "deploy:bsc": "yarn workspace @nostra/contracts deploy:bsc",
+    "deploy:bsc-testnet": "yarn workspace @nostra/contracts deploy:bsc-testnet",
+    "sdk:build": "yarn workspace @nostra-dev/sdk build",
+    "sdk:dev": "yarn workspace @nostra-dev/sdk dev",
+    "validate:sdk": "npx ts-node packages/contracts/scripts/utils/validate-sdk-addresses.ts",
+    "market:create": "yarn workspace @nostra/contracts market:create",
+    "market:bet": "yarn workspace @nostra/contracts market:bet",
+    "market:bet:ohtani": "yarn workspace @nostra/contracts market:bet:ohtani",
+    "market:bet:guerrero": "yarn workspace @nostra/contracts market:bet:guerrero",
+    "market:bet:yamamoto": "yarn workspace @nostra/contracts market:bet:yamamoto",
+    "market:prices": "yarn workspace @nostra/contracts market:prices",
+    "market:simulate-trading": "yarn workspace @nostra/contracts market:simulate-trading",
+    "market:buy-pressure": "yarn workspace @nostra/contracts market:buy-pressure",
+    "market:resolve": "yarn workspace @nostra/contracts market:resolve",
+    "market:redeem": "yarn workspace @nostra/contracts market:redeem"
   },
   "keywords": [
     "prediction-market",
