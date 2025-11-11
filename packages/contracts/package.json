@@ -15,6 +15,7 @@
     "deploy:polygon-amoy": "npx hardhat run scripts/deploy/deploy.ts --network polygonAmoy",
     "deploy:bsc": "npx hardhat run scripts/deploy/deploy-bsc.ts --network bsc",
     "deploy:bsc-testnet": "npx hardhat run scripts/deploy/deploy-bsc-testnet.ts --network bscTestnet",
+    "transfer:trader": "npx hardhat run scripts/transfer-usdc-to-trader.ts --network bscTestnet",
     "market:create": "npx hardhat run scripts/interact/world-series-mvp/01-create-market.ts --network bscTestnet",
     "market:bet": "npx hardhat run scripts/interact/world-series-mvp/02-place-bet.ts --network bscTestnet",
     "market:bet:ohtani": "npx hardhat run scripts/interact/world-series-mvp/02-place-bet-ohtani.ts --network bscTestnet",
