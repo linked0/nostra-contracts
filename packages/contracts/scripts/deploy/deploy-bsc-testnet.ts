@@ -107,13 +107,6 @@ async function main() {
   await addResolverTx.wait();
   console.log("✅ Test resolver added:", deployer.address);
 
-  // Mint some test USDC to deployer
-  console.log("\n💵 Minting test USDC to deployer...");
-  const mintAmount = ethers.parseUnits("10000", 6); // 10,000 USDC
-  const mintTx = await mockUSDC.mint(deployer.address, mintAmount);
-  await mintTx.wait();
-  console.log("✅ Minted", ethers.formatUnits(mintAmount, 6), "USDC to deployer");
-
   console.log("\n✅ Deployment completed successfully!");
 
   // Prepare deployment data
