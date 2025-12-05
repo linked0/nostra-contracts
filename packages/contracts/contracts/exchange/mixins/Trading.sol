@@ -168,8 +168,8 @@ abstract contract Trading is ITrading {
         // Transfer takerOrder making amount from taker order to the Exchange
         _transfer(takerOrder.maker, address(this), makerAssetId, making);
 
-        // Fill the maker orders
-        _fillMakerOrders(takerOrder, makerOrders, makerFillAmounts);
+        // Fill the maker orders and track collateral consumed
+        uint256 totalCollateralConsumed = _fillMakerOrders(takerOrder, makerOrders, makerFillAmounts);
 
         taking = _updateTakingWithSurplus(taking, takerAssetId);
         uint256 fee = CalculatorHelper.calculateFee(
@@ -185,7 +185,19 @@ abstract contract Trading is ITrading {
         _chargeFee(address(this), msg.sender, takerAssetId, fee);
 
         // Refund any leftover tokens pulled from the taker to the taker order
-        uint256 refund = _getBalance(makerAssetId);
+        // For COMPLEMENTARY BUY matches (makerAssetId == 0 and totalCollateralConsumed > 0):
+        //   - Only internal balances change, so _getBalance(0) returns ALL ERC20 USDC (wrong!)
+        //   - Calculate refund from consumed amount instead
+        // For MINT/MERGE (totalCollateralConsumed == 0) and CTF tokens:
+        //   - Actual ERC20 transfers happen, so _getBalance works correctly
+        uint256 refund;
+        if (makerAssetId == 0 && totalCollateralConsumed > 0) {
+            // COMPLEMENTARY BUY: calculate refund manually
+            refund = making > totalCollateralConsumed ? making - totalCollateralConsumed : 0;
+        } else {
+            // MINT/MERGE or CTF tokens: use actual balance (works correctly)
+            refund = _getBalance(makerAssetId);
+        }
         if (refund > 0) _transfer(address(this), takerOrder.maker, makerAssetId, refund);
 
         emit OrderFilled(
@@ -197,22 +209,26 @@ abstract contract Trading is ITrading {
 
     function _fillMakerOrders(Order memory takerOrder, Order[] memory makerOrders, uint256[] memory makerFillAmounts)
         internal
+        returns (uint256 totalCollateralConsumed)
     {
         uint256 length = makerOrders.length;
         uint256 i = 0;
+        totalCollateralConsumed = 0;
         for (; i < length;) {
-            _fillMakerOrder(takerOrder, makerOrders[i], makerFillAmounts[i]);
+            totalCollateralConsumed += _fillMakerOrder(takerOrder, makerOrders[i], makerFillAmounts[i]);
             unchecked {
                 ++i;
             }
         }
+        return totalCollateralConsumed;
     }
 
     /// @notice Fills a Maker order
     /// @param takerOrder - The taker order
     /// @param makerOrder - The maker order
     /// @param fillAmount - The fill amount
-    function _fillMakerOrder(Order memory takerOrder, Order memory makerOrder, uint256 fillAmount) internal {
+    /// @return collateralConsumed - Amount of collateral consumed by this fill (for USDC refund calculation)
+    function _fillMakerOrder(Order memory takerOrder, Order memory makerOrder, uint256 fillAmount) internal returns (uint256 collateralConsumed) {
         MatchType matchType = _deriveMatchType(takerOrder, makerOrder);
 
         // Ensure taker order and maker order match
@@ -234,6 +250,19 @@ abstract contract Trading is ITrading {
         emit OrderFilled(
             orderHash, makerOrder.maker, takerOrder.maker, makerAssetId, takerAssetId, making, taking, fee
         );
+
+        // Track collateral consumed for COMPLEMENTARY matches only.
+        // For MINT/MERGE, actual ERC20 transfers happen via ConditionalTokens, so _getBalance works.
+        // For COMPLEMENTARY (BUY vs SELL), only internal balances change, so we need to track manually.
+        if (matchType == MatchType.COMPLEMENTARY && takerOrder.side == Side.BUY) {
+            // Taker is BUY: their USDC goes to maker seller = taking - fee
+            collateralConsumed = taking - fee;
+        } else {
+            // MINT/MERGE: use 0 to indicate _getBalance should be used
+            // SELL taker: no collateral consumed (taker receives USDC)
+            collateralConsumed = 0;
+        }
+        return collateralConsumed;
     }
 
     /// @notice Performs common order computations and validation

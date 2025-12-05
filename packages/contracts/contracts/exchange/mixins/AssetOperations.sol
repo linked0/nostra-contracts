@@ -7,15 +7,16 @@ import "../interfaces/IAssets.sol";
 import "../interfaces/IAssetOperations.sol";
 import "../interfaces/IConditionalTokens.sol";
 import "../libraries/TransferHelper.sol";
+import "./Balances.sol";
 
 /// @title Asset Operations
 /// @notice Operations on the CTF and Collateral assets
 /// @dev This mixin expects getCollateral() and getCtf() from Assets mixin
-abstract contract AssetOperations is IAssetOperations, IAssets {
+abstract contract AssetOperations is IAssetOperations, IAssets, Balances {
     bytes32 public constant parentCollectionId = bytes32(0);
 
     /// @notice Get collateral token address - must be implemented by Assets mixin
-    function getCollateral() public view virtual override returns (address);
+    function getCollateral() public view virtual override(IAssets, Balances) returns (address);
 
     /// @notice Get CTF token address - must be implemented by Assets mixin
     function getCtf() public view virtual override returns (address);
@@ -31,9 +32,23 @@ abstract contract AssetOperations is IAssetOperations, IAssets {
     }
 
     function _transferCollateral(address from, address to, uint256 value) internal virtual {
-        address token = getCollateral();
-        if (from == address(this)) TransferHelper._transferERC20(token, to, value);
-        else TransferHelper._transferFromERC20(token, from, to, value);
+        // Case 1: Exchange -> User (e.g. Payout)
+        if (from == address(this)) {
+            balances[to] += value;
+            return;
+        }
+
+        // Case 2: User -> Exchange (e.g. Minting)
+        if (to == address(this)) {
+            require(balances[from] >= value, "Insufficient balance");
+            balances[from] -= value;
+            return;
+        }
+
+        // Case 3: User -> User (e.g. Trading)
+        require(balances[from] >= value, "Insufficient balance");
+        balances[from] -= value;
+        balances[to] += value;
     }
 
     function _transferCTF(address from, address to, uint256 id, uint256 value) internal virtual {

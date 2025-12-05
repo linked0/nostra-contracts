@@ -40,11 +40,11 @@
   "bscTestnet": {
     "chainId": 97,
     "contracts": {
-      "ConditionalTokens": "0x022fE336cFeDE3f99550C87b60e29D175D52d3B0",
-      "MarketFactory": "0x91F73E21A8E3AB1526230F3f013fca7BedA97128",
-      "ResolutionOracle": "0x69B2dC1559c5Aae84079f12692750b5270d97aBd",
-      "CTFExchange": "0xEf2d9a1f5A7884e36906abf779da402DdCDbcbb7",
-      "MockUSDC": "0x4113d487e174F3F8A66Ac28A35cBF770822b2478"
+      "ConditionalTokens": "0x05E242a457652A89febc25c168229Ca2c7D10Ba7",
+      "MarketFactory": "0xF6c75b2f8F796DAeB093e98Bfdd9D588C96BCe68",
+      "ResolutionOracle": "0x0ac4BBA43006E94eeA62CE58700C9cF1d3CEB9DD",
+      "CTFExchange": "0x514208e0877665a713D06fB4AF2F7a069702EF84",
+      "MockUSDC": "0x0c13e51297a27F995337a2029a117Bfb20e436c9"
     }
   }
 }

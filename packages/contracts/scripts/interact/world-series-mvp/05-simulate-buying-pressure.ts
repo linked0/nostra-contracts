@@ -215,6 +215,19 @@ async function main() {
   await approveUSDCTx.wait();
   console.log(`✅ USDC approval confirmed`);
 
+  // DEPOSIT USDC INTO EXCHANGE (Required for Taker)
+  console.log(`\n💰 Checking Exchange Balance for Taker...`);
+  const takerExchangeBalance = await ctfExchange.balances(takerAccount.address);
+  console.log(`   Exchange Balance: ${ethers.formatUnits(takerExchangeBalance, 6)} USDC`);
+
+  if (takerExchangeBalance < requiredUSDC) {
+    console.log(`   Balance low. Depositing ${ethers.formatUnits(requiredUSDC, 6)} USDC...`);
+    const ctfExchangeForDeposit = ctfExchange.connect(takerAccount);
+    const depositTx = await ctfExchangeForDeposit.deposit(requiredUSDC);
+    await depositTx.wait();
+    console.log(`   ✅ Deposited ${ethers.formatUnits(requiredUSDC, 6)} USDC`);
+  }
+
   // Get current nonce for the account and track it locally
   let currentNonce = await ctfExchange.nonces(deployer.address);
   console.log(`\n📊 Starting nonce: ${currentNonce}`);

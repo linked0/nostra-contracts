@@ -13,12 +13,14 @@ import "./mixins/NonceManager.sol";
 import "./mixins/AssetOperations.sol";
 import "./BaseExchange.sol";
 import {Order} from "./libraries/OrderStructs.sol";
+import "@openzeppelin/contracts/utils/Multicall.sol";
 
 /// @title CTF Exchange
 /// @notice Implements logic for trading CTF assets
 /// @author Nostra (based on Polymarket CTF Exchange)
 contract CTFExchange is
     BaseExchange,
+    Multicall,
     Auth,
     Assets,
     Fees,
@@ -154,5 +156,21 @@ contract CTFExchange is
         uint256[] memory makerFillAmounts
     ) external nonReentrant notPaused onlyOperator {
         _matchOrders(takerOrder, makerOrders, takerFillAmount, makerFillAmounts);
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                           DEPOSIT / WITHDRAW
+    //////////////////////////////////////////////////////////////*/
+
+    /// @notice Deposits collateral into the exchange
+    /// @param amount The amount to deposit
+    function deposit(uint256 amount) external nonReentrant notPaused {
+        _deposit(msg.sender, amount);
+    }
+
+    /// @notice Withdraws collateral from the exchange
+    /// @param amount The amount to withdraw
+    function withdraw(uint256 amount) external nonReentrant {
+        _withdraw(msg.sender, amount);
     }
 }
