@@ -74,6 +74,12 @@ describe("CTF Exchange - Integration: matchOrders Flow", function () {
     await conditionalTokens.connect(taker).setApprovalForAll(await exchange.getAddress(), true);
     await conditionalTokens.connect(operator).setApprovalForAll(await exchange.getAddress(), true);
 
+    // Deposit collateral into the exchange (required for internal balance system)
+    const depositAmount = ethers.parseUnits("5000", 6); // 5,000 USDC each
+    await exchange.connect(maker).deposit(depositAmount);
+    await exchange.connect(taker).deposit(depositAmount);
+    await exchange.connect(operator).deposit(depositAmount);
+
     // Split collateral into outcome tokens for each participant
     await conditionalTokens.connect(maker).splitPosition(
       await collateralToken.getAddress(),

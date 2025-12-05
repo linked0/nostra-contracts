@@ -107,6 +107,12 @@ async function main() {
   await addResolverTx.wait();
   console.log("✅ Test resolver added:", deployer.address);
 
+  // Add deployer as operator on CTFExchange (for server-side matching)
+  console.log("\n👥 Adding deployer as operator on CTFExchange...");
+  const addOperatorTx = await ctfExchange.addOperator(deployer.address);
+  await addOperatorTx.wait();
+  console.log("✅ Deployer added as operator:", deployer.address);
+
   console.log("\n✅ Deployment completed successfully!");
 
   // Prepare deployment data
