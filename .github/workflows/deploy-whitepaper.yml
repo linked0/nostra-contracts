@@ -2,7 +2,7 @@ name: Deploy Whitepaper to GitHub Pages
 
 on:
   push:
-    branches: ["mvp-last", "main"]
+    branches: ["mvp-last", "main", "whitepaper"]
     paths:
       - "whitepaper/**"
   workflow_dispatch:
@@ -29,10 +29,15 @@ jobs:
       - name: Setup Pages
         uses: actions/configure-pages@v5
 
+      - name: Prepare deployment
+        run: |
+          mkdir _site
+          cp -r whitepaper _site/
+
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: 'whitepaper'
+          path: '_site'
 
       - name: Deploy to GitHub Pages
         uses: actions/deploy-pages@v4
