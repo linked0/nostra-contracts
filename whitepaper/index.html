@@ -1,0 +1,3043 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nostra Technical Whitepaper - Market Models & Oracle Integration</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <div class="lang-switch">
+                <a href="ko.html" class="lang-link">🇰🇷 한국어</a>
+            </div>
+            <h1>Nostra Technical Whitepaper</h1>
+            <p class="subtitle">Advanced Market Models & Chainlink Oracle Integration</p>
+            <p class="author-info">By Jay Lee | December 2025</p>
+        </header>
+
+        <nav class="toc">
+            <h2>Table of Contents</h2>
+            <div class="toc-grid">
+                <div>
+                    <div class="toc-section-title">Part 1: Market Design Fundamentals</div>
+                    <ul>
+                        <li><a href="#market-structures">1.1 Market Structures</a></li>
+                        <li><a href="#initial-probability">1.2 Initial Probability Settings</a></li>
+                        <li><a href="#liquidity-provision">1.3 Liquidity Provision</a></li>
+                        <li><a href="#stuck-inventory">1.4 Stuck Inventory Problem</a></li>
+                        <li><a href="#market-makers">1.5 Market Makers</a></li>
+                        <li><a href="#fee-structure">1.6 Fee Structure</a></li>
+                        <li><a href="#amm-vs-orderbook">1.7 AMM vs Order Book</a></li>
+                        <li><a href="#platform-economics">1.8 Platform Economics</a></li>
+                        <li><a href="#implementation">1.9 Implementation Considerations</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <div class="toc-section-title">Part 2: Market Models</div>
+                    <ul>
+                        <li><a href="#model-comparison">2.1 Model Comparison Overview</a></li>
+                        <li><a href="#grouped-binary">2.2 Grouped Binary Model (Nostra)</a></li>
+                        <li><a href="#ctf-multi">2.3 CTF Multi-Outcome Model</a></li>
+                        <li><a href="#negrisk">2.4 NegRisk Adapter (Polymarket)</a></li>
+                        <li><a href="#negrisk-conversion">2.5 NegRisk Conversion Mechanics</a></li>
+                        <li><a href="#negrisk-arch">2.6 NegRisk Architecture</a></li>
+                        <li><a href="#implementation-options">2.7 Implementation Options</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <div class="toc-section-title">Part 3: Chainlink Integration</div>
+                    <ul>
+                        <li><a href="#why-chainlink">3.1 Why Chainlink for Resolution</a></li>
+                        <li><a href="#chainlink-setup">3.2 Getting Started with Chainlink</a></li>
+                        <li><a href="#long-tail-markets">3.3 Handling Long-tail Markets</a></li>
+                        <li><a href="#chainlink-products">3.4 Chainlink Products Overview</a></li>
+                        <li><a href="#resolution-arch">3.5 Resolution Architecture</a></li>
+                        <li><a href="#smart-contracts">3.6 Smart Contract Integration</a></li>
+                        <li><a href="#cost-security">3.7 Cost & Security</a></li>
+                        <li><a href="#roadmap">3.8 Implementation Roadmap</a></li>
+                    </ul>
+                </div>
+            </div>
+        </nav>
+
+        <!-- PART 0: MARKET DESIGN FUNDAMENTALS -->
+        <div class="part-divider">
+            <h2>Part 1: Market Design Fundamentals</h2>
+            <span class="part-subtitle">Understanding Prediction Market Economics</span>
+        </div>
+
+        <!-- Section 0.1: Market Structures -->
+        <section id="market-structures" class="part-1-section">
+            <h3><span class="section-num part-1">1.1</span>Market Structures</h3>
+
+            <h4>Two Main Approaches</h4>
+
+            <div class="grid-2">
+                <div class="card">
+                    <h4><span class="label label-accent">50% Grouped Binary</span></h4>
+                    <ul>
+                        <li>Each outcome starts at 50% YES / 50% NO</li>
+                        <li>Markets are independent (not linked)</li>
+                        <li>Sum of YES can be anything (N × 50%)</li>
+                        <li>Converges to ~100% via arbitrage</li>
+                        <li>Simple to implement</li>
+                    </ul>
+                    <pre
+                        style="font-size: 0.85rem; margin: 0; padding: 1rem; background: #1e293b; color: #e2e8f0; border-radius: 6px;">5 outcomes at 50% each:
+Sum = 250%
+(Converges via trading)</pre>
+                </div>
+
+                <div class="card">
+                    <h4><span class="label label-success">100/n% Binary Market</span></h4>
+                    <ul>
+                        <li>Each outcome starts at 100/N %</li>
+                        <li>Can be independent OR mechanically linked (CTF)</li>
+                        <li>Sum of YES = 100%</li>
+                        <li>No initial arbitrage opportunity</li>
+                        <li>Creator doesn't lose to arbitrageurs at start</li>
+                    </ul>
+                    <pre
+                        style="font-size: 0.85rem; margin: 0; padding: 1rem; background: #1e293b; color: #e2e8f0; border-radius: 6px;">5 outcomes at 20% each:
+Sum = 100%
+(No arbitrage opportunity)</pre>
+                </div>
+            </div>
+
+            <h4>Polymarket's Hybrid Approach (NegRisk CTF)</h4>
+
+            <div class="box box-highlight">
+                <span class="box-title">Different Structures for Different Markets</span>
+                <ul>
+                    <li><strong>High Volume Markets (e.g., Super Bowl)</strong>: NegRisk CTF - YES + NO = 100¢ per
+                        outcome</li>
+                    <li><strong>Low Volume Markets (e.g., CFP)</strong>: Grouped Binary - YES + NO ≠ 100¢</li>
+                </ul>
+            </div>
+
+            <pre
+                style="font-size: 0.85rem; padding: 1rem; background: #1e293b; color: #e2e8f0; border-radius: 6px; margin: 1rem 0;">Super Bowl (NegRisk CTF):
+┌────────────┬───────┬───────┬──────────┐
+│ Team       │ YES   │ NO    │ YES + NO │
+├────────────┼───────┼───────┼──────────┤
+│ Chiefs     │ 23¢   │ 77¢   │ 100¢ ✓   │
+│ Eagles     │ 19¢   │ 81¢   │ 100¢ ✓   │
+└────────────┴───────┴───────┴──────────┘
+
+CFP (Grouped Binary):
+┌────────────┬───────┬───────┬──────────┐
+│ Team       │ YES   │ NO    │ YES + NO │
+├────────────┼───────┼───────┼──────────┤
+│ Indiana    │ 93.4¢ │ 99¢   │ 192.4¢   │
+│ Ohio State │ 72¢   │ 98¢   │ 170¢     │
+└────────────┴───────┴───────┴──────────┘</pre>
+        </section>
+
+        <!-- Section 0.2: Initial Probability Settings -->
+        <section id="initial-probability" class="part-1-section">
+            <h3><span class="section-num part-1">1.2</span>Initial Probability Settings</h3>
+
+            <h4>The Problem with 50% Initial Probability</h4>
+
+            <div class="box box-danger">
+                <span class="box-title">Arbitrage Loss</span>
+                If each outcome starts at 50%, the sum exceeds 100%, creating a guaranteed profit for arbitrageurs at
+                the creator's expense.
+            </div>
+
+            <pre
+                style="font-size: 0.85rem; padding: 1rem; background: #1e293b; color: #e2e8f0; border-radius: 6px; margin: 1rem 0;">5 outcomes at 50% each:
+Sum = 250%
+
+Arbitrageurs:
+- Buy all NO tokens
+- Guaranteed profit when one outcome loses
+- Creator loses to arbitrageurs</pre>
+
+            <h4>Solution: 100/n% Initial Probability</h4>
+
+            <div class="box box-success">
+                <span class="box-title">No Arbitrage</span>
+                Starting at 100/n% means sum = 100% from the start. No free money for arbitrageurs.
+            </div>
+
+            <h4>Critical Clarification: 250% Sum is NOT Arbitrage</h4>
+
+            <div class="box box-warning">
+                <span class="box-title">Common Misconception</span>
+                The 250% sum (5 × 50%) in grouped binary markets does NOT create arbitrage. Each market is independent!
+            </div>
+
+            <pre
+                style="font-size: 0.85rem; padding: 1rem; background: #1e293b; color: #e2e8f0; border-radius: 6px; margin: 1rem 0;">Grouped Binary (5 outcomes × 50%):
+
+Market 1: Team A  YES (50¢) + NO (50¢) = $1 ✓
+Market 2: Team B  YES (50¢) + NO (50¢) = $1 ✓
+Market 3: Team C  YES (50¢) + NO (50¢) = $1 ✓
+Market 4: Team D  YES (50¢) + NO (50¢) = $1 ✓
+Market 5: Team E  YES (50¢) + NO (50¢) = $1 ✓
+
+Sum of YES = 250%... but so what?
+
+Why no arbitrage?
+• Each market is INDEPENDENT
+• You CANNOT merge tokens across different markets
+• Each market individually has YES + NO = $1 ✓
+
+The 250% → 100% convergence is just PRICE DISCOVERY,
+not arbitrage. Smart traders normalize it.</pre>
+
+            <h4>What IS Real Arbitrage?</h4>
+
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Case</th>
+                            <th>Condition</th>
+                            <th>Action</th>
+                            <th>Result</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Single Market</td>
+                            <td>YES + NO < $1</td>
+                            <td>Buy both</td>
+                            <td>Guaranteed profit</td>
+                        </tr>
+                        <tr>
+                            <td>Single Market</td>
+                            <td>YES + NO > $1</td>
+                            <td>Mint & sell both</td>
+                            <td>Guaranteed profit</td>
+                        </tr>
+                        <tr>
+                            <td>CTF Multi-Outcome</td>
+                            <td>Sum < $1</td>
+                            <td>Buy all, merge</td>
+                            <td>Guaranteed profit</td>
+                        </tr>
+                        <tr>
+                            <td>CTF Multi-Outcome</td>
+                            <td>Sum > $1</td>
+                            <td>Split & sell all</td>
+                            <td>Guaranteed profit</td>
+                        </tr>
+                        <tr>
+                            <td>Cross-Platform</td>
+                            <td>YES_A + NO_B < $1</td>
+                            <td>Buy both sides</td>
+                            <td>Guaranteed profit</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <p><strong>Key:</strong> Arbitrage means <strong>zero risk, guaranteed profit</strong>. The 250% sum doesn't
+                qualify.</p>
+
+            <h4>Comparison: 5 Outcomes (True Probabilities: 60%, 15%, 10%, 10%, 5%)</h4>
+
+            <div class="grid-2">
+                <div class="card">
+                    <h4>50% Initial (Sum = 250%)</h4>
+                    <div class="table-wrapper">
+                        <table>
+                            <tr>
+                                <th>Outcome</th>
+                                <th>Initial</th>
+                                <th>Fair</th>
+                                <th>Gap</th>
+                            </tr>
+                            <tr>
+                                <td>A (favorite)</td>
+                                <td>50¢</td>
+                                <td>60¢</td>
+                                <td style="color: var(--danger);">-10¢</td>
+                            </tr>
+                            <tr>
+                                <td>B</td>
+                                <td>50¢</td>
+                                <td>15¢</td>
+                                <td style="color: var(--success);">+35¢</td>
+                            </tr>
+                            <tr>
+                                <td>C</td>
+                                <td>50¢</td>
+                                <td>10¢</td>
+                                <td style="color: var(--success);">+40¢</td>
+                            </tr>
+                            <tr>
+                                <td>D</td>
+                                <td>50¢</td>
+                                <td>10¢</td>
+                                <td style="color: var(--success);">+40¢</td>
+                            </tr>
+                            <tr>
+                                <td>E</td>
+                                <td>50¢</td>
+                                <td>5¢</td>
+                                <td style="color: var(--success);">+45¢</td>
+                            </tr>
+                        </table>
+                    </div>
+                    <p>Favorite: small underpricing (-10¢)<br>Underdogs: extreme overpricing (+35~45¢)</p>
+                </div>
+
+                <div class="card">
+                    <h4>100/n% = 20% Initial (Sum = 100%)</h4>
+                    <div class="table-wrapper">
+                        <table>
+                            <tr>
+                                <th>Outcome</th>
+                                <th>Initial</th>
+                                <th>Fair</th>
+                                <th>Gap</th>
+                            </tr>
+                            <tr>
+                                <td>A (favorite)</td>
+                                <td>20¢</td>
+                                <td>60¢</td>
+                                <td style="color: var(--danger);">-40¢</td>
+                            </tr>
+                            <tr>
+                                <td>B</td>
+                                <td>20¢</td>
+                                <td>15¢</td>
+                                <td style="color: var(--success);">+5¢</td>
+                            </tr>
+                            <tr>
+                                <td>C</td>
+                                <td>20¢</td>
+                                <td>10¢</td>
+                                <td style="color: var(--success);">+10¢</td>
+                            </tr>
+                            <tr>
+                                <td>D</td>
+                                <td>20¢</td>
+                                <td>10¢</td>
+                                <td style="color: var(--success);">+10¢</td>
+                            </tr>
+                            <tr>
+                                <td>E</td>
+                                <td>20¢</td>
+                                <td>5¢</td>
+                                <td style="color: var(--success);">+15¢</td>
+                            </tr>
+                        </table>
+                    </div>
+                    <p>Favorite: large underpricing (-40¢)<br>Underdogs: small overpricing (+5~15¢)</p>
+                </div>
+            </div>
+
+            <h4>The Real Problem: Stuck NO Tokens on Favorites</h4>
+
+            <div class="box box-danger">
+                <span class="box-title">With 100/n% (20% initial)</span>
+                <ul>
+                    <li>Favorite YES = 20¢ (way underpriced) → traders BUY → creator sells cheap</li>
+                    <li>Favorite NO = 80¢ (way overpriced) → nobody buys → creator STUCK</li>
+                </ul>
+                <p>When the favorite wins, creator holds worthless 80¢ NO tokens.</p>
+            </div>
+
+            <h4>Conclusion: Neither Solves the Problem</h4>
+
+            <div class="box box-highlight">
+                <span class="box-title">100/n% trades one problem for another</span>
+                <ul>
+                    <li>✅ Underdogs priced closer to fair value</li>
+                    <li>❌ Favorites MORE underpriced than 50%</li>
+                    <li>❌ High-priced NO tokens (80¢) on favorites won't sell</li>
+                </ul>
+                <p><strong>Whether it minimizes loss depends on trading patterns.</strong></p>
+            </div>
+
+            <h4>True Solutions Remain:</h4>
+            <ol>
+                <li><strong>CTF Multi-Outcome</strong> - No stuck inventory (can merge)</li>
+                <li><strong>Market Maker</strong> - Professional takes inventory risk</li>
+                <li><strong>No initial platform liquidity</strong> - Let market discover prices first</li>
+                <li><strong>Accept loss as bootstrap cost</strong> - Part of business</li>
+            </ol>
+        </section>
+
+        <!-- Section 0.3: Liquidity Provision -->
+        <section id="liquidity-provision" class="part-1-section">
+            <h3><span class="section-num part-1">1.3</span>Liquidity Provision</h3>
+
+            <h4>The Bootstrap Problem</h4>
+
+            <div class="diagram">
+                <div class="diagram-title">Liquidity Bootstrap Cycle</div>
+                <div style="text-align: center; padding: 1.5rem; font-family: var(--font-mono); line-height: 1.8;">
+                    No liquidity → No trading → No fees → No LPs attracted<br>
+                    ↓<br>
+                    <strong>Platform must break the cycle</strong><br>
+                    ↓<br>
+                    Platform provides liquidity → Trading starts →<br>
+                    Fees generated → Volume proven → External LPs join
+                </div>
+            </div>
+
+            <h4>Who Provides Liquidity?</h4>
+
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Provider</th>
+                            <th>Reality</th>
+                            <th>When</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Random traders</td>
+                            <td>Won't come to empty market</td>
+                            <td>Never initially</td>
+                        </tr>
+                        <tr>
+                            <td>Professional MMs</td>
+                            <td>Only for proven high-volume markets</td>
+                            <td>After volume is established</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Platform itself</strong></td>
+                            <td><strong>Must bootstrap new markets</strong></td>
+                            <td><strong>From day 1</strong></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h4>Balanced Position Strategy</h4>
+
+            <pre
+                style="font-size: 0.85rem; padding: 1rem; background: #1e293b; color: #e2e8f0; border-radius: 6px; margin: 1rem 0;">For a 5-outcome market with $1000 liquidity:
+
+Split equally: $200 per market
+
+For each market (at 20% YES / 80% NO):
+- 200 YES @ $0.20 = $40
+- 200 NO @ $0.80 = $160
+- Total: $200 → 200 YES + 200 NO (balanced)
+
+If A wins:
+- A: 200 YES × $1 = $200
+- B: 200 NO × $1 = $200
+- C: 200 NO × $1 = $200
+- D: 200 NO × $1 = $200
+- E: 200 NO × $1 = $200
+
+Return: $1000 ✓ (break even when balanced)</pre>
+
+            <h4>Small Liquidity Problem</h4>
+
+            <div class="box box-warning">
+                <span class="box-title">$500 liquidity is NOT enough</span>
+                <ul>
+                    <li>Wide spreads (bad prices)</li>
+                    <li>High slippage on small trades</li>
+                    <li>Can't execute large orders</li>
+                    <li>Poor user experience</li>
+                </ul>
+            </div>
+
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Liquidity Level</th>
+                            <th>Trading Quality</th>
+                            <th>User Experience</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>$500/market</td>
+                            <td>Poor</td>
+                            <td>Frustrating, large slippage</td>
+                        </tr>
+                        <tr>
+                            <td>$5,000/market</td>
+                            <td>Okay</td>
+                            <td>Acceptable for small traders</td>
+                        </tr>
+                        <tr>
+                            <td>$50,000+/market</td>
+                            <td>Good</td>
+                            <td>Professional-grade</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Section 0.4: Stuck Inventory Problem -->
+        <section id="stuck-inventory" class="part-1-section">
+            <h3><span class="section-num part-1">1.4</span>Stuck Inventory Problem</h3>
+
+            <h4>The Core Issue</h4>
+
+            <div class="box box-danger">
+                <span class="box-title">Critical Problem</span>
+                In Grouped Binary markets, LP can get stuck with worthless tokens that nobody wants to buy.
+            </div>
+
+            <pre
+                style="font-size: 0.85rem; padding: 1rem; background: #1e293b; color: #e2e8f0; border-radius: 6px; margin: 1rem 0;">Initial: Market A at 20% YES / 80% NO
+Creator holds: 200 YES + 200 NO
+
+Time passes... A becomes favorite (80% YES):
+
+Traders: "I want to BUY YES on A!"
+Creator: Sells YES, happy 😊
+
+Traders: "I don't want NO on A, A will win!"
+Creator: Can't sell NO, stuck 😰
+
+Result:
+- YES: 200 → 50 (sold 150, good!)
+- NO: 200 → 200 (nobody bought, stuck!)
+
+If A wins:
+- 50 YES × $1 = $50
+- 200 NO × $0 = $0
+Creator started with $200, ends with $50
+LOSS: $150 ❌</pre>
+
+            <h4>Why Cross-Market Selling Doesn't Help</h4>
+
+            <p>Selling NO on losing markets (B, C, D, E) does NOT compensate:</p>
+
+            <pre
+                style="font-size: 0.85rem; padding: 1rem; background: #1e293b; color: #e2e8f0; border-radius: 6px; margin: 1rem 0;">Sell 200 NO on B @ 95¢ = $190 received
+But: If A wins, buyer gets 200 × $1 = $200
+
+Creator sold $200 value for $190 = LOSS
+
+Cross-market selling adds MORE losses, not compensation.</pre>
+
+            <h4>CTF Solves This</h4>
+
+            <div class="box box-success">
+                <span class="box-title">CTF Multi-Outcome allows merging complete sets</span>
+                <pre style="font-size: 0.85rem; background: transparent; margin: 0; padding: 0; color: inherit;">100 A + 100 B + 100 C + 100 D + 100 E → $100 USDC
+
+No counterparty needed!
+Always can exit via merge.
+No stuck inventory problem.</pre>
+            </div>
+
+            <h4>Worst Case Scenario for LP</h4>
+
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Scenario</th>
+                            <th>Fee Income</th>
+                            <th>Inventory Loss</th>
+                            <th>Total Loss</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Best case</td>
+                            <td>$500</td>
+                            <td>$100</td>
+                            <td style="color: var(--success);">+$500 profit</td>
+                        </tr>
+                        <tr>
+                            <td>Average</td>
+                            <td>$200</td>
+                            <td>$350</td>
+                            <td>-$150 (15%)</td>
+                        </tr>
+                        <tr>
+                            <td>Bad case</td>
+                            <td>$75</td>
+                            <td>$400</td>
+                            <td>-$325 (32.5%)</td>
+                        </tr>
+                        <tr>
+                            <td style="color: var(--danger);"><strong>Worst case</strong></td>
+                            <td>$75</td>
+                            <td>$860</td>
+                            <td style="color: var(--danger);"><strong>-$785 (78.5%)</strong></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Section 0.5: Market Makers -->
+        <section id="market-makers" class="part-1-section">
+            <h3><span class="section-num part-1">1.5</span>Market Makers (MM)</h3>
+
+            <h4>How MMs Make Profit</h4>
+
+            <div class="grid-2">
+                <div class="card">
+                    <h4>1. Spread (Buy Low, Sell High)</h4>
+                    <pre
+                        style="font-size: 0.85rem; margin: 0; padding: 1rem; background: #1e293b; color: #e2e8f0; border-radius: 6px;">MM posts orders:
+BUY YES @ 49¢
+SELL YES @ 51¢
+
+When both sides fill:
+- Trader A buys YES @ 51¢ → MM receives 51¢
+- Trader B sells YES @ 49¢ → MM pays 49¢
+
+MM profit: 51¢ - 49¢ = 2¢ per share
+If 10,000 shares traded: Profit = $200</pre>
+                </div>
+
+                <div class="card">
+                    <h4>2. Fee Rebates</h4>
+                    <pre
+                        style="font-size: 0.85rem; margin: 0; padding: 1rem; background: #1e293b; color: #e2e8f0; border-radius: 6px;">Taker (takes order): Pays 2% fee
+Maker (provides order): Receives 0.5% rebate
+
+MM always provides orders → earns rebate
+on every trade</pre>
+                </div>
+            </div>
+
+            <div class="grid-2" style="margin-top: 1rem;">
+                <div class="card">
+                    <h4>3. High-Frequency Adjustments</h4>
+                    <pre
+                        style="font-size: 0.85rem; margin: 0; padding: 1rem; background: #1e293b; color: #e2e8f0; border-radius: 6px;">Price moving up?
+→ Cancel BUY orders (avoid buying expensive)
+→ Raise SELL prices (sell higher)
+
+Amateur LP: Updates hourly → Gets run over
+Pro MM: Updates every second → Captures spread</pre>
+                </div>
+
+                <div class="card">
+                    <h4>4. Hedging Across Markets</h4>
+                    <pre
+                        style="font-size: 0.85rem; margin: 0; padding: 1rem; background: #1e293b; color: #e2e8f0; border-radius: 6px;">Correlated markets:
+- "Chiefs win Super Bowl" (YES @ 25¢)
+- "Mahomes wins MVP" (YES @ 30¢)
+
+MM sells Chiefs YES, buys Mahomes YES (hedge)
+Net exposure: ~zero
+But: Keeps spread profit!</pre>
+                </div>
+            </div>
+
+            <h4>MM Profit Formula</h4>
+
+            <div class="box box-highlight">
+                <pre style="font-size: 0.9rem; background: transparent; margin: 0; padding: 0; color: inherit;">MM Profit = Spread Income
+          + Fee Rebates
+          + Arbitrage Gains
+          - Inventory Losses
+          - Operating Costs</pre>
+            </div>
+
+            <h4>How to Attract MMs to Nostra</h4>
+
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Method</th>
+                            <th>Description</th>
+                            <th>Cost to Platform</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Pay Monthly Fee</td>
+                            <td>$2-10K/month for liquidity</td>
+                            <td>Fixed, predictable</td>
+                        </tr>
+                        <tr>
+                            <td>Fee Rebates</td>
+                            <td>MM earns 0.5% on trades</td>
+                            <td>Reduced revenue</td>
+                        </tr>
+                        <tr>
+                            <td>Revenue Sharing</td>
+                            <td>50% of trading fees</td>
+                            <td>Variable</td>
+                        </tr>
+                        <tr>
+                            <td>Token Incentives</td>
+                            <td>NOSTRA tokens for liquidity</td>
+                            <td>Token dilution</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h4>Key Insight: Polymarket Model</h4>
+
+            <div class="box box-highlight">
+                <span class="box-title">Polymarket has NO public LP UI</span>
+                <p>Liquidity comes from:</p>
+                <ul>
+                    <li>Professional MMs (via API, not UI)</li>
+                    <li>Polymarket internal (hidden, behind scenes)</li>
+                    <li>Traders' limit orders</li>
+                </ul>
+                <p>Regular users just trade. They don't "provide liquidity" through UI.</p>
+            </div>
+        </section>
+
+        <!-- Section 0.6: Fee Structure -->
+        <section id="fee-structure" class="part-1-section">
+            <h3><span class="section-num part-1">1.6</span>Fee Structure</h3>
+
+            <h4>Fee Distribution Model</h4>
+
+            <div class="diagram">
+                <div class="diagram-title">Fee Flow</div>
+                <div style="text-align: center; padding: 1.5rem; font-family: var(--font-mono); line-height: 1.8;">
+                    LP provides liquidity<br>↓<br>
+                    Traders can trade<br>↓<br>
+                    Traders pay fees<br>↓<br>
+                    Fees go to LP as yield<br>↓<br>
+                    LP compensated for risk<br>↓<br>
+                    More LPs attracted → More liquidity
+                </div>
+            </div>
+
+            <h4>Proposed Fee Structure</h4>
+
+            <pre
+                style="font-size: 0.85rem; padding: 1rem; background: #1e293b; color: #e2e8f0; border-radius: 6px; margin: 1rem 0;">Trade: $100
+Fee: 2% = $2.00
+
+Distribution:
+├── LP (liquidity provider): $1.50 (75%)
+└── Platform (Nostra):       $0.50 (25%)</pre>
+
+            <h4>LP Yield Calculation</h4>
+
+            <pre
+                style="font-size: 0.85rem; padding: 1rem; background: #0f172a; color: #fef08a; border-radius: 6px; margin: 1rem 0;">LP provides: $1,000 liquidity
+Market volume: $50,000/month
+Fee rate: 2%
+LP share: 75%
+
+LP earnings:
+$50,000 × 2% × 75% = $750/month
+
+LP yield:
+$750 / $1,000 = 75% monthly APY 🔥
+
+(High yield compensates for inventory risk)</pre>
+
+            <h4>The Tradeoff</h4>
+
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Fee Level</th>
+                            <th>LP Yield</th>
+                            <th>Trading Activity</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>High (3%+)</td>
+                            <td>High</td>
+                            <td>Low (expensive to trade)</td>
+                        </tr>
+                        <tr>
+                            <td>Medium (2%)</td>
+                            <td>Medium</td>
+                            <td>Medium</td>
+                        </tr>
+                        <tr>
+                            <td>Low (0.5%)</td>
+                            <td>Low</td>
+                            <td>High (cheap to trade)</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h4>Can Fees Cover Losses?</h4>
+
+            <div class="box box-warning">
+                <span class="box-title">Not always</span>
+                <p>If volume is low AND market moves hard in one direction:</p>
+                <ul>
+                    <li>Fee income: small</li>
+                    <li>Inventory loss: large</li>
+                    <li>Net: significant loss</li>
+                </ul>
+                <p>Fees help but don't guarantee profit.</p>
+            </div>
+        </section>
+
+        <!-- Section 0.7: AMM vs Order Book -->
+        <section id="amm-vs-orderbook" class="part-1-section">
+            <h3><span class="section-num part-1">1.7</span>AMM vs Order Book</h3>
+
+            <h4>Fundamental Difference</h4>
+
+            <div class="grid-2">
+                <div class="card">
+                    <h4><span class="label label-accent">Order Book</span></h4>
+                    <ul>
+                        <li>Match buyers with sellers</li>
+                        <li>Need counterparty for every trade</li>
+                        <li>Prices set by traders</li>
+                        <li>Can have no liquidity</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <h4><span class="label label-success">AMM</span></h4>
+                    <ul>
+                        <li>Trade against liquidity pool</li>
+                        <li>No counterparty needed</li>
+                        <li>Prices set by formula</li>
+                        <li>Always some liquidity</li>
+                    </ul>
+                </div>
+            </div>
+
+            <h4>AMM Example: World Cup</h4>
+
+            <pre
+                style="font-size: 0.85rem; padding: 1rem; background: #1e293b; color: #e2e8f0; border-radius: 6px; margin: 1rem 0;">LMSR AMM for 8 teams:
+
+Initial pool ($5000 liquidity):
+┌─────────────┬────────┬───────┬──────────────┐
+│ Team        │ Tokens │ Price │ Implied Odds │
+├─────────────┼────────┼───────┼──────────────┤
+│ Brazil      │ 5000   │ 12.5¢ │ 12.5%        │
+│ France      │ 5000   │ 12.5¢ │ 12.5%        │
+│ Argentina   │ 5000   │ 12.5¢ │ 12.5%        │
+│ ...         │ 5000   │ 12.5¢ │ 12.5%        │
+└─────────────┴────────┴───────┴──────────────┘
+
+Trader buys $100 Brazil:
+→ Gets ~700 Brazil tokens
+→ Pool Brazil: 5000 → 4300
+→ Brazil price: 12.5% → 25% (automatic!)</pre>
+
+            <h4>Comparison Table</h4>
+
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Feature</th>
+                            <th>Order Book</th>
+                            <th>AMM</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Always tradeable</td>
+                            <td>No (need counterparty)</td>
+                            <td><span class="label label-success">Yes</span></td>
+                        </tr>
+                        <tr>
+                            <td>Capital needed</td>
+                            <td>High ($50K+)</td>
+                            <td><span class="label label-success">Lower ($5K)</span></td>
+                        </tr>
+                        <tr>
+                            <td>Price discovery</td>
+                            <td>Order matching</td>
+                            <td>Formula</td>
+                        </tr>
+                        <tr>
+                            <td>Large trades</td>
+                            <td>Better (if deep)</td>
+                            <td>Higher slippage</td>
+                        </tr>
+                        <tr>
+                            <td>Complexity</td>
+                            <td>Medium</td>
+                            <td>Medium</td>
+                        </tr>
+                        <tr>
+                            <td>Pro traders prefer</td>
+                            <td><span class="label label-success">Yes</span></td>
+                            <td>No</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h4>Key Insight</h4>
+
+            <div class="box box-warning">
+                <span class="box-title">Order Book and AMM don't mix</span>
+                <p>They are fundamentally different systems. You choose ONE, not both.</p>
+                <p>Nostra currently has Order Book. Switching to AMM would require significant rebuild.</p>
+            </div>
+        </section>
+
+        <!-- Section 0.8: Platform Economics -->
+        <section id="platform-economics" class="part-1-section">
+            <h3><span class="section-num part-1">1.8</span>Platform Economics</h3>
+
+            <h4>The Unavoidable Bootstrap Cost</h4>
+
+            <div class="box box-danger">
+                <span class="box-title">Before external LPs/MMs are attracted, the platform MUST:</span>
+                <ul>
+                    <li>Provide initial liquidity</li>
+                    <li>Take inventory risk</li>
+                    <li>Accept potential losses as cost of business</li>
+                </ul>
+                <p>This is unavoidable. Every marketplace subsidizes early growth.</p>
+            </div>
+
+            <h4>Budget Example</h4>
+
+            <pre
+                style="font-size: 0.85rem; padding: 1rem; background: #1e293b; color: #e2e8f0; border-radius: 6px; margin: 1rem 0;">Nostra Year 1 Plan:
+
+Launch 50 markets
+Initial liquidity: $500 per market = $25,000
+Expected loss rate: 20%
+Expected loss: $5,000
+
+Think of it as:
+"$5,000 marketing spend to build a prediction market"
+
+Compare to:
+- Google Ads: $10,000
+- Influencer marketing: $20,000
+- Traditional marketing: $50,000+
+
+$5,000 liquidity loss = CHEAP customer acquisition</pre>
+
+            <h4>Growth Path</h4>
+
+            <div class="diagram">
+                <div class="diagram-title">Platform Growth Phases</div>
+                <div
+                    style="text-align: left; padding: 1.5rem; font-family: var(--font-mono); line-height: 1.8; font-size: 0.85rem;">
+                    <strong>Phase 1: Platform Provides All Liquidity</strong><br>
+                    ├── Provide $500/market<br>
+                    ├── Lose ~20% = $100/market<br>
+                    └── Build volume and reputation<br>
+                    ↓<br>
+                    <strong>Phase 2: Attract External LPs</strong><br>
+                    ├── Show track record<br>
+                    ├── "We did $1M volume last month"<br>
+                    └── LPs see fee opportunity<br>
+                    ↓<br>
+                    <strong>Phase 3: Sustainable Model</strong><br>
+                    ├── External LPs provide liquidity<br>
+                    ├── Platform just takes fees<br>
+                    └── Profit!
+                </div>
+            </div>
+
+            <h4>Polymarket's Business Model</h4>
+
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Component</th>
+                            <th>Polymarket</th>
+                            <th>Risk Bearer</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Platform</td>
+                            <td>Takes 2% fee on winnings</td>
+                            <td><span class="label label-success">Zero inventory risk</span></td>
+                        </tr>
+                        <tr>
+                            <td>Market Makers</td>
+                            <td>Provide liquidity via API</td>
+                            <td><span class="label label-danger">Bear inventory risk</span></td>
+                        </tr>
+                        <tr>
+                            <td>Users</td>
+                            <td>Trade only</td>
+                            <td>Market risk</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Section 0.9: Implementation Considerations -->
+        <section id="implementation" class="part-1-section">
+            <h3><span class="section-num part-1">1.9</span>Implementation Considerations</h3>
+
+            <h4>Code Changes for 100/n% Pricing</h4>
+
+            <div class="grid-2">
+                <div class="card">
+                    <h4>Database Schema (No Change Needed)</h4>
+                    <pre
+                        style="font-size: 0.8rem; margin: 0; padding: 1rem; background: #1e293b; color: #e2e8f0; border-radius: 6px;">// Prisma schema
+// Price is set at market creation
+model Outcome {
+  currentPrice Decimal @default(0.5)
+  probability  Decimal @default(50)
+}</pre>
+                </div>
+
+                <div class="card">
+                    <h4>Market Creation Logic</h4>
+                    <pre
+                        style="font-size: 0.8rem; margin: 0; padding: 1rem; background: #1e293b; color: #e2e8f0; border-radius: 6px;">// When creating market with N outcomes
+const totalOutcomes = outcomes.length;
+const initialPrice = 1 / totalOutcomes;
+const initialProbability = 100 / totalOutcomes;
+
+for (const outcome of outcomes) {
+  await outcomeRepository.create({
+    ...outcome,
+    currentPrice: initialPrice,      // 0.20 for 5 outcomes
+    probability: initialProbability, // 20% for 5 outcomes
+  });
+}</pre>
+                </div>
+            </div>
+
+            <h4>Price Update Options</h4>
+
+            <div class="grid-2">
+                <div class="card">
+                    <h4>Option A: Independent (Simple)</h4>
+                    <pre
+                        style="font-size: 0.85rem; margin: 0; padding: 1rem; background: #1e293b; color: #e2e8f0; border-radius: 6px;">Buy A → A price up
+Others unchanged
+Sum drifts from 100%
+Arbitrage corrects</pre>
+                </div>
+
+                <div class="card">
+                    <h4>Option B: Linked (Complex)</h4>
+                    <pre
+                        style="font-size: 0.85rem; margin: 0; padding: 1rem; background: #1e293b; color: #e2e8f0; border-radius: 6px;">Buy A → A price up
+Others auto-decrease
+Sum stays at 100%
+Requires more logic</pre>
+                </div>
+            </div>
+
+            <h4>MM Bot Architecture (Optional)</h4>
+
+            <pre
+                style="font-size: 0.8rem; padding: 1rem; background: #1e293b; color: #e2e8f0; border-radius: 6px; margin: 1rem 0;">// Auto-rebalancing market maker bot
+const MM_CONFIG = {
+  maxImbalance: 50,       // Max YES/NO difference
+  spreadBps: 400,         // 4% spread
+  rebalanceThreshold: 25  // Rebalance at 25 token imbalance
+};
+
+async function onTrade(market, side, amount) {
+  const position = getPosition(market);
+  const imbalance = Math.abs(position.yes - position.no);
+
+  if (imbalance > MM_CONFIG.rebalanceThreshold) {
+    await rebalance(market, position);
+  }
+
+  // Adjust spreads based on inventory
+  await adjustSpreads(market, position);
+}
+
+async function checkToxicInventory(market) {
+  const yesPrice = market.yesPrice;
+
+  // If YES is winning big, NO is toxic
+  if (yesPrice > 0.70) {
+    const noTokens = getPosition(market, 'NO');
+    if (noTokens > 0) {
+      // Sell at ANY price before it goes to zero
+      await placeSellOrder(market, 'NO', noTokens, yesPrice * 0.5);
+    }
+  }
+}</pre>
+
+            <h4>UI Considerations</h4>
+
+            <div class="box box-highlight">
+                <span class="box-title">Following Polymarket's approach</span>
+                <ul>
+                    <li>❌ No public "Provide Liquidity" UI</li>
+                    <li>✅ Simple trading interface only</li>
+                    <li>✅ Admin panel for platform liquidity (internal)</li>
+                    <li>✅ API access for MM partners (later)</li>
+                </ul>
+            </div>
+
+            <h4>Risk Disclosure (Required)</h4>
+
+            <pre
+                style="font-size: 0.85rem; padding: 1rem; background: #450a0a; color: #fecaca; border-radius: 6px; margin: 1rem 0;">For any LP feature (if built):
+
+⚠️ RISK WARNING
+
+Providing liquidity involves significant risk.
+
+• You may lose 30-80% of deposited funds
+• Fee income may NOT cover losses
+• Worst case: lose almost everything
+
+Only deposit what you can afford to lose.</pre>
+        </section>
+
+        <!-- Summary for Part 0 -->
+        <section style="background: #0f172a; border-radius: 12px;">
+            <h3 style="color: #e2e8f0; border-bottom-color: rgba(255,255,255,0.2);">Part 1 Summary: Key Design Decisions
+            </h3>
+
+            <div class="table-wrapper">
+                <table style="color: #e2e8f0;">
+                    <thead>
+                        <tr>
+                            <th style="background: #1e293b; color: #f8fafc; font-weight: 600;">Decision</th>
+                            <th style="background: #1e293b; color: #f8fafc; font-weight: 600;">Recommendation</th>
+                            <th style="background: #1e293b; color: #f8fafc; font-weight: 600;">Rationale</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr style="border-bottom: 1px solid #334155;">
+                            <td style="color: #cbd5e1;">Initial Probability</td>
+                            <td style="color: #fef08a;"><strong>100/n% or 50%</strong></td>
+                            <td style="color: #94a3b8;">Neither prevents loss; trade-offs exist</td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid #334155;">
+                            <td style="color: #cbd5e1;">Market Structure</td>
+                            <td style="color: #fef08a;"><strong>Grouped Binary → NegRisk</strong></td>
+                            <td style="color: #94a3b8;">Already implemented; upgrade path available</td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid #334155;">
+                            <td style="color: #cbd5e1;">Trading System</td>
+                            <td style="color: #fef08a;"><strong>Keep Order Book</strong></td>
+                            <td style="color: #94a3b8;">Already built; AMM requires rebuild</td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid #334155;">
+                            <td style="color: #cbd5e1;">Initial Liquidity</td>
+                            <td style="color: #fef08a;"><strong>Platform provides</strong></td>
+                            <td style="color: #94a3b8;">No external LPs at start</td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid #334155;">
+                            <td style="color: #cbd5e1;">Liquidity Amount</td>
+                            <td style="color: #fef08a;"><strong>$1-5K per market</strong></td>
+                            <td style="color: #94a3b8;">Balance between UX and risk</td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid #334155;">
+                            <td style="color: #cbd5e1;">Expected Loss</td>
+                            <td style="color: #fef08a;"><strong>~20% of liquidity</strong></td>
+                            <td style="color: #94a3b8;">Marketing/customer acquisition cost</td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid #334155;">
+                            <td style="color: #cbd5e1;">Fee Structure</td>
+                            <td style="color: #fef08a;"><strong>2% fee</strong></td>
+                            <td style="color: #94a3b8;">Industry standard</td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid #334155;">
+                            <td style="color: #cbd5e1;">Public LP UI</td>
+                            <td style="color: #fef08a;"><strong>No</strong> (like Polymarket)</td>
+                            <td style="color: #94a3b8;">Keep it simple; internal only</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div
+                style="margin-top: 2rem; padding: 1rem; background: #1e293b; border-radius: 8px; border-left: 4px solid #fef08a;">
+                <p style="margin: 0; font-size: 1.1rem; color: #f1f5f9;">
+                    <strong style="color: #fef08a;">Bottom Line:</strong> Accept initial liquidity losses as cost of
+                    bootstrapping.
+                    Focus on building volume. External LPs and MMs will come after platform proves itself.
+                </p>
+            </div>
+        </section>
+
+        <!-- PART 1: MARKET MODELS -->
+        <div class="part-divider">
+            <h2>Part 2: Advanced Market Models</h2>
+            <span class="part-subtitle">CTF Multi-Outcome vs NegRisk Adapter</span>
+        </div>
+
+        <!-- Section 1.1: Model Comparison -->
+        <section id="model-comparison" class="part-2-section">
+            <h3><span class="section-num part-2">2.1</span>Market Model Comparison Overview</h3>
+            <p>Understanding the three primary market model architectures for prediction markets with multiple outcomes.
+            </p>
+
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Feature</th>
+                            <th>Grouped Binary (Nostra)</th>
+                            <th>CTF Multi-Outcome</th>
+                            <th>Grouped Binary + NegRisk (Polymarket)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Initial Probability</strong></td>
+                            <td>Flexible (50% or 100/N%)</td>
+                            <td>Flexible (100/N% or External)</td>
+                            <td>Flexible (Market Decided)</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Sum of YES Prices</strong></td>
+                            <td><span class="label label-danger">Flexible (Unlinked)</span></td>
+                            <td><span class="label label-success">Always = 100%</span></td>
+                            <td><span class="label label-success">~100%</span></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Market Linkage</strong></td>
+                            <td>Independent</td>
+                            <td>Mechanical (Split/Merge)</td>
+                            <td>Adapter (NegRisk)</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Stuck Inventory</strong></td>
+                            <td><span class="label label-danger">Yes</span></td>
+                            <td><span class="label label-success">No</span></td>
+                            <td><span class="label label-success">No</span></td>
+                        </tr>
+                        <tr>
+                            <td><strong>conditionId</strong></td>
+                            <td>Multiple (Per Outcome)</td>
+                            <td>Single (Shared)</td>
+                            <td>Multiple + negRiskMarketId</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Position Conversion</strong></td>
+                            <td><span class="label label-danger">Not Possible</span></td>
+                            <td><span class="label label-success">Via Merge</span></td>
+                            <td><span class="label label-success">Via Adapter</span></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Implementation</strong></td>
+                            <td><span class="label label-success">Simple</span></td>
+                            <td><span class="label label-warning">Complex</span></td>
+                            <td><span class="label label-warning">6-10 Weeks</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="box box-highlight">
+                <span class="box-title">Key Takeaway</span>
+                <ul>
+                    <li><strong>Nostra Current:</strong> Grouped Binary - Simple implementation but stuck inventory
+                        issues</li>
+                    <li><strong>Polymarket:</strong> Grouped Binary + NegRisk - Solves inventory via adapter layer</li>
+                    <li><strong>Core Difference:</strong> Market linkage mechanism (None vs Split/Merge vs NegRisk
+                        Adapter)</li>
+                </ul>
+            </div>
+        </section>
+
+        <!-- Section 1.2: Grouped Binary Model (Nostra) -->
+        <section id="grouped-binary" class="part-2-section">
+            <h3><span class="section-num part-2">2.2</span>Grouped Binary Model (Nostra)</h3>
+            <p>The Grouped Binary model is Nostra's current implementation. Each outcome in a multi-outcome question is
+                treated as an independent binary market with its own YES/NO tokens.</p>
+
+            <h4>How It Works</h4>
+            <div class="diagram">
+                <div class="diagram-title">Grouped Binary Architecture</div>
+                <p style="text-align: center; margin-bottom: 1rem; font-size: 0.875rem; color: var(--text-muted);">Each
+                    outcome = Independent binary market with separate <code>conditionId</code></p>
+                <div class="diagram-content">
+                    <div class="token"><span class="token-slot">Market 1</span><br><strong>Spain</strong><br>YES / NO
+                    </div>
+                    <div class="token"><span class="token-slot">Market 2</span><br><strong>France</strong><br>YES / NO
+                    </div>
+                    <div class="token"><span class="token-slot">Market 3</span><br><strong>Brazil</strong><br>YES / NO
+                    </div>
+                    <div class="token"><span class="token-slot">Market 4</span><br><strong>Argentina</strong><br>YES /
+                        NO</div>
+                    <div class="token"><span class="token-slot">Market 5</span><br><strong>England</strong><br>YES / NO
+                    </div>
+                </div>
+            </div>
+
+            <h4>Key Characteristics</h4>
+            <div class="grid-2">
+                <div class="card">
+                    <h4>Advantages</h4>
+                    <ul>
+                        <li><strong>Simple Implementation:</strong> Each market is independent, easy to create and
+                            manage</li>
+                        <li><strong>Familiar UX:</strong> Standard YES/NO betting interface</li>
+                        <li><strong>Flexible Pricing:</strong> No mechanical constraints on initial prices</li>
+                        <li><strong>Easy Resolution:</strong> One winner resolves YES, others resolve NO</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <h4>Disadvantages</h4>
+                    <ul>
+                        <li><strong>No Market Linkage:</strong> Prices don't sum to 100%</li>
+                        <li><strong>Stuck Inventory:</strong> Can't convert Spain YES → France YES</li>
+                        <li><strong>Arbitrage Leakage:</strong> No mechanical arbitrage enforcement</li>
+                        <li><strong>Capital Inefficiency:</strong> Must sell + rebuy to switch positions</li>
+                    </ul>
+                </div>
+            </div>
+
+            <h4>The Stuck Inventory Problem</h4>
+            <div class="box box-danger">
+                <span class="box-title">Example Scenario</span>
+                <p>You hold 100 Spain YES tokens at $0.25 each. Spain gets eliminated. Now you want France YES instead:
+                </p>
+                <ol>
+                    <li><strong>Sell Spain YES:</strong> Price crashed to $0.05 → You get only $5 (lost $20)</li>
+                    <li><strong>Buy France YES:</strong> Price rose to $0.40 → You get only 12.5 tokens</li>
+                </ol>
+                <p style="margin-top: 1rem;"><strong>Result:</strong> Double slippage, significant value loss. Your
+                    position is effectively "stuck."</p>
+            </div>
+
+            <div class="box box-highlight">
+                <span class="box-title">When Grouped Binary Works Well</span>
+                <ul>
+                    <li>Low volume markets where conversion demand is minimal</li>
+                    <li>Markets with few outcomes (2-3)</li>
+                    <li>Short duration markets where position changes are rare</li>
+                    <li>MVP/early stage products prioritizing simplicity</li>
+                </ul>
+            </div>
+        </section>
+
+        <!-- Section 1.3: CTF Multi-Outcome -->
+        <section id="ctf-multi" class="part-2-section">
+            <h3><span class="section-num part-2">2.3</span>CTF Multi-Outcome Model</h3>
+            <p>The CTF Multi-Outcome model is the "pure" way to handle multiple mutually exclusive outcomes using the
+                Conditional Tokens Framework. Unlike Grouped Binary where each outcome is a separate market, CTF
+                Multi-Outcome uses a single condition with multiple outcome slots.</p>
+
+            <h4>Model Structure Comparison</h4>
+
+            <div class="diagram">
+                <div class="diagram-title">CTF Multi-Outcome Model — Single Condition, Multiple Outcomes</div>
+                <p style="text-align: center; margin-bottom: 1rem; font-size: 0.875rem; color: var(--text-muted);">One
+                    <code>conditionId</code> shared by all outcomes
+                </p>
+                <div class="diagram-content">
+                    <div class="token"><strong>Spain</strong><br><span class="token-slot">Slot 0</span></div>
+                    <div class="token"><strong>France</strong><br><span class="token-slot">Slot 1</span></div>
+                    <div class="token"><strong>Brazil</strong><br><span class="token-slot">Slot 2</span></div>
+                    <div class="token"><strong>Argentina</strong><br><span class="token-slot">Slot 3</span></div>
+                    <div class="token"><strong>England</strong><br><span class="token-slot">Slot 4</span></div>
+                </div>
+                <pre
+                    style="margin-top: 1.5rem;">prepareCondition(oracle, questionId, <span class="code-value">outcomeSlotCount=5</span>)</pre>
+            </div>
+
+            <h4>Split and Merge Operations</h4>
+            <p>CTF Multi-Outcome enables mechanical split/merge operations that are impossible in Grouped Binary:</p>
+
+            <div class="grid-2">
+                <div class="card">
+                    <h4>Split: USDC → All Tokens</h4>
+                    <p><code>$1 USDC</code> → 1 Spain + 1 France + 1 Brazil + 1 Argentina + 1 England</p>
+                    <p style="font-size: 0.8125rem; color: var(--text-muted);">Exactly ONE token will be worth $1,
+                        others $0</p>
+                </div>
+                <div class="card">
+                    <h4>Merge: All Tokens → USDC</h4>
+                    <p>1 Spain + 1 France + 1 Brazil + 1 Argentina + 1 England → <code>$1 USDC</code></p>
+                    <p style="font-size: 0.8125rem; color: var(--text-muted);">Guaranteed $1 regardless of outcome</p>
+                </div>
+            </div>
+
+            <div class="box box-success">
+                <span class="box-title">Why Sum Always = 100%</span>
+                <p>The split/merge mechanism creates mechanical arbitrage that forces prices to sum to 100%:</p>
+                <ul>
+                    <li><strong>If sum > 100%:</strong> Arbitrageurs split $1 → sell all tokens → profit from excess
+                    </li>
+                    <li><strong>If sum < 100%:</strong> Arbitrageurs buy all tokens cheap → merge → profit from $1</li>
+                </ul>
+            </div>
+        </section>
+
+        <!-- Section 1.4: NegRisk Adapter -->
+        <section id="negrisk" class="part-2-section">
+            <h3><span class="section-num part-2">2.4</span>NegRisk Adapter (Polymarket Approach)</h3>
+            <p><strong>NegRisk = Negative Risk</strong> — Managing positions through NO tokens. It's an adapter layer
+                that links grouped binary markets via NO token equivalence, enabling position conversion.</p>
+
+            <h4>Real-World Example: Polymarket 2026 FIFA World Cup Winner</h4>
+            <div class="box box-success">
+                <span class="box-title">Live Market Data</span>
+                <p>Polymarket's "2026 FIFA World Cup Winner" market demonstrates NegRisk in production:</p>
+                <ul>
+                    <li><strong>Total Volume:</strong> $11.1M+ traded</li>
+                    <li><strong>Total Liquidity:</strong> $2.08M</li>
+                    <li><strong>Outcomes:</strong> 48+ countries (Spain, France, England, Brazil, Argentina, etc.)</li>
+                    <li><strong>End Date:</strong> July 20, 2026</li>
+                </ul>
+                <p style="margin-top: 1rem; font-size: 0.8125rem;">
+                    <a href="https://polymarket.com/event/2026-fifa-world-cup-winner-595" target="_blank"
+                        style="color: var(--accent);">View on Polymarket →</a>
+                    <span style="margin: 0 0.5rem; color: var(--text-muted);">|</span>
+                    <a href="https://gamma-api.polymarket.com/events?slug=2026-fifa-world-cup-winner-595"
+                        target="_blank" style="color: var(--secondary);">API Data (JSON) →</a>
+                </p>
+            </div>
+
+            <h4>Technical Structure (from Polymarket API)</h4>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Field</th>
+                            <th>Value</th>
+                            <th>Purpose</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>negRiskMarketId</code></td>
+                            <td><code style="font-size: 0.7rem;">0xb5c32a9acd39...</code></td>
+                            <td>Links all 48+ binary markets together</td>
+                        </tr>
+                        <tr>
+                            <td><code>conditionId</code> (Spain)</td>
+                            <td><code style="font-size: 0.7rem;">0x7976b8dbacf9...</code></td>
+                            <td>Unique per outcome (each country has its own)</td>
+                        </tr>
+                        <tr>
+                            <td><code>conditionId</code> (Brazil)</td>
+                            <td><code style="font-size: 0.7rem;">0x30d55d8124ee...</code></td>
+                            <td>Different conditionId, same negRiskMarketId</td>
+                        </tr>
+                        <tr>
+                            <td><code>clobTokenIds</code></td>
+                            <td>2 per market</td>
+                            <td>YES token ID + NO token ID for orderbook</td>
+                        </tr>
+                        <tr>
+                            <td><code>minTickSize</code></td>
+                            <td>0.01</td>
+                            <td>Minimum price increment ($0.01)</td>
+                        </tr>
+                        <tr>
+                            <td><code>minOrderSize</code></td>
+                            <td>5</td>
+                            <td>Minimum order amount</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h4>Current Odds Example</h4>
+            <div class="diagram">
+                <div class="diagram-title">Top Contenders — Prices from Polymarket</div>
+                <div class="diagram-content">
+                    <div class="token"><strong>Spain</strong><br>16¢ YES<br><span class="token-slot">$169K vol</span>
+                    </div>
+                    <div class="token"><strong>France</strong><br>14¢ YES<br><span class="token-slot">$142K vol</span>
+                    </div>
+                    <div class="token"><strong>England</strong><br>13¢ YES<br><span class="token-slot">$128K vol</span>
+                    </div>
+                    <div class="token"><strong>Brazil</strong><br>9¢ YES<br><span class="token-slot">$89K vol</span>
+                    </div>
+                    <div class="token"><strong>Argentina</strong><br>9¢ YES<br><span class="token-slot">$85K vol</span>
+                    </div>
+                </div>
+                <p style="text-align: center; margin-top: 1rem; font-size: 0.8125rem; color: var(--text-muted);">
+                    Sum ≈ 61% for top 5 teams. Remaining ~39% distributed across 43+ other countries.
+                </p>
+            </div>
+
+            <h4>The Problem: Stuck Inventory</h4>
+            <div class="box box-danger">
+                <span class="box-title">Grouped Binary Limitation</span>
+                <p>In Grouped Binary (Nostra's current model), each outcome is independent. If you hold Spain YES and
+                    want France YES instead:</p>
+                <ol>
+                    <li>Sell Spain YES on orderbook (slippage risk)</li>
+                    <li>Use USDC to buy France YES (more slippage)</li>
+                </ol>
+                <p><strong>No direct conversion possible.</strong></p>
+            </div>
+
+            <h4>The Key Insight: NO Token Equivalence</h4>
+            <p>In a mutually exclusive market (only ONE team can win), all NO tokens have a special property:</p>
+
+            <div class="box box-highlight">
+                <span class="box-title">Mathematical Equivalence</span>
+                <p><strong>If Spain wins:</strong> Spain NO = $0, but France NO = $1, Brazil NO = $1, etc.</p>
+                <p><strong>If France wins:</strong> France NO = $0, but Spain NO = $1, Brazil NO = $1, etc.</p>
+                <p style="margin-top: 1rem;"><strong>N NO tokens (one for each team) = $(N-1) guaranteed</strong></p>
+            </div>
+
+            <h4>Example: 5 Teams</h4>
+            <pre>
+<span class="code-comment">// If Spain wins:</span>
+Spain NO = <span class="code-value">$0</span>
+France NO = <span class="code-value">$1</span>
+Brazil NO = <span class="code-value">$1</span>
+Argentina NO = <span class="code-value">$1</span>
+England NO = <span class="code-value">$1</span>
+<span class="code-keyword">Total = $4</span>
+
+<span class="code-comment">// If France wins:</span>
+Spain NO = <span class="code-value">$1</span>
+France NO = <span class="code-value">$0</span>
+Brazil NO = <span class="code-value">$1</span>
+Argentina NO = <span class="code-value">$1</span>
+England NO = <span class="code-value">$1</span>
+<span class="code-keyword">Total = $4</span>
+
+<span class="code-comment">// No matter who wins: Total = $4 (always!)</span>
+<span class="code-keyword">5 NO tokens = $4 = $(N-1)</span>
+            </pre>
+        </section>
+
+        <!-- Section 1.5: NegRisk Conversion -->
+        <section id="negrisk-conversion" class="part-2-section">
+            <h3><span class="section-num part-2">2.5</span>NegRisk Conversion Mechanics</h3>
+            <p>NegRisk uses the mathematical equivalence to enable position conversion:</p>
+
+            <h4>Conversion Formula: NO → YES</h4>
+            <div class="box box-highlight">
+                <p><strong>You have:</strong> Spain NO + France NO + Brazil NO + Argentina NO (4 tokens)</p>
+                <p><strong>You want:</strong> England YES</p>
+                <p style="margin-top: 1rem;"><strong>Conversion:</strong><br>
+                    4 NO tokens (not England) = $3 guaranteed value = 1 England YES + remaining USDC</p>
+                <p style="margin-top: 1rem;"><strong>Result:</strong><br>
+                    Burn: Spain NO, France NO, Brazil NO, Argentina NO<br>
+                    Receive: 1 England YES + some USDC</p>
+            </div>
+
+            <h4>Why This Works</h4>
+            <div class="grid-2">
+                <div class="card">
+                    <h4>Without NegRisk</h4>
+                    <p>Spain YES → Sell on orderbook → USDC → Buy France YES</p>
+                    <p style="color: #991b1b;"><strong>Problem:</strong> Slippage on both trades, dependent on liquidity
+                    </p>
+                </div>
+                <div class="card">
+                    <h4>With NegRisk</h4>
+                    <p>Spain YES → Convert via adapter → France YES</p>
+                    <p style="color: #166534;"><strong>Benefit:</strong> Mathematical conversion, no slippage on
+                        conversion step</p>
+                </div>
+            </div>
+
+            <h4>Order Execution: Two Paths to Buy YES</h4>
+            <p>When a user wants to buy Spain YES, the system can choose the optimal execution path:</p>
+
+            <div class="grid-2">
+                <div class="card">
+                    <h4>Path 1: Direct Orderbook</h4>
+                    <pre style="margin: 0.75rem 0; font-size: 0.8rem;">
+Buy Spain YES directly at 17¢ ask
+
+Simple, but limited by
+YES-side liquidity</pre>
+                </div>
+                <div class="card">
+                    <h4>Path 2: Mint + Sell NO (NegRisk)</h4>
+                    <pre style="margin: 0.75rem 0; font-size: 0.8rem;">
+Step 1: $1 USDC → Mint Spain YES + NO
+Step 2: Sell Spain NO at 83¢ bid
+Step 3: Keep Spain YES
+
+Net cost: $1.00 - $0.83 = 17¢</pre>
+                </div>
+            </div>
+
+            <h4>When Does Path 2 Win?</h4>
+            <p>In efficient markets, both paths yield similar prices. But <strong>slippage differs based on liquidity
+                    depth</strong>:</p>
+
+            <div class="diagram">
+                <div class="diagram-title">Example: Buy 10,000 Spain YES</div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; padding: 1rem;">
+                    <div>
+                        <p style="font-weight: 600; color: var(--danger); margin-bottom: 0.5rem;">YES Orderbook (thin)
+                        </p>
+                        <pre
+                            style="font-size: 0.8rem; margin: 0; background: #fef2f2; padding: 1rem; border-radius: 6px; border-left: 3px solid var(--danger); color: #b91c1c;">
+17¢: 2,000 shares
+18¢: 3,000 shares
+19¢: 2,500 shares
+20¢: 5,000 shares
+─────────────────
+Avg price: ~18.5¢ ❌</pre>
+                    </div>
+                    <div>
+                        <p style="font-weight: 600; color: var(--success); margin-bottom: 0.5rem;">NO Orderbook (deep)
+                        </p>
+                        <pre
+                            style="font-size: 0.8rem; margin: 0; background: #f0fdf4; padding: 1rem; border-radius: 6px; border-left: 3px solid var(--success); color: #15803d;">
+83¢: 50,000 shares
+82¢: 30,000 shares
+81¢: 20,000 shares
+
+─────────────────
+Avg price: ~17.2¢ ✓</pre>
+                    </div>
+                </div>
+                <p style="text-align: center; margin-top: 0.75rem; font-size: 0.875rem; color: var(--text-muted);">
+                    NO tokens often have deeper liquidity → NegRisk path gives better execution for large orders
+                </p>
+            </div>
+
+            <div class="box box-highlight" style="margin-top: 1.5rem;">
+                <span class="box-title">Order Router Logic</span>
+                <pre style="font-size: 0.8rem; margin: 0.75rem 0;">
+<span class="code-keyword">function</span> getBestExecutionPath(outcome, amount):
+
+    <span class="code-comment">// Calculate cost via direct YES purchase</span>
+    directCost = simulateOrderbookBuy(outcome.YES, amount)
+
+    <span class="code-comment">// Calculate cost via mint + sell NO</span>
+    mintCost = amount * $1.00
+    noProceeds = simulateOrderbookSell(outcome.NO, amount)
+    negRiskCost = mintCost - noProceeds
+
+    <span class="code-comment">// Return cheaper path</span>
+    <span class="code-keyword">return</span> (directCost < negRiskCost) ? <span class="code-value">"orderbook"</span> : <span class="code-value">"negrisk"</span></pre>
+                <p style="font-size: 0.8125rem; color: var(--text-muted); margin-top: 0.75rem;">
+                    This routing happens automatically — users just click "Buy YES" and get best execution.
+                </p>
+            </div>
+
+            <h4>NegRisk Advantages</h4>
+            <div class="grid-2">
+                <div class="card">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;">
+                        <span style="font-size: 1.25rem;">💧</span>
+                        <h4 style="margin: 0;">Unified Liquidity</h4>
+                    </div>
+                    <p>All outcomes share liquidity through NO token equivalence. Instead of fragmenting liquidity
+                        across 48 separate markets, the NegRisk adapter creates a unified liquidity pool.</p>
+                </div>
+                <div class="card">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;">
+                        <span style="font-size: 1.25rem;">💰</span>
+                        <h4 style="margin: 0;">Capital Efficiency</h4>
+                    </div>
+                    <p>Lower collateral requirements through shared backing. Holding N NO tokens only requires $(N-1) in
+                        value, enabling more efficient capital deployment for market makers.</p>
+                </div>
+                <div class="card">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;">
+                        <span style="font-size: 1.25rem;">⚡</span>
+                        <h4 style="margin: 0;">Zero Slippage Conversion</h4>
+                    </div>
+                    <p>Convert between positions mathematically without orderbook dependency. The conversion rate is
+                        deterministic, eliminating slippage on the conversion step itself.</p>
+                </div>
+                <div class="card">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;">
+                        <span style="font-size: 1.25rem;">📊</span>
+                        <h4 style="margin: 0;">Better Price Discovery</h4>
+                    </div>
+                    <p>Arbitrage opportunities keep prices in sync across all outcomes. If sum of YES prices deviates
+                        from 100%, arbitrageurs can profit by converting, maintaining market efficiency.</p>
+                </div>
+                <div class="card">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;">
+                        <span style="font-size: 1.25rem;">📈</span>
+                        <h4 style="margin: 0;">Infinite Scalability</h4>
+                    </div>
+                    <p>Support 48+ outcomes without fragmenting liquidity. Polymarket's World Cup market demonstrates
+                        this with all countries trading against unified liquidity.</p>
+                </div>
+                <div class="card">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;">
+                        <span style="font-size: 1.25rem;">🔓</span>
+                        <h4 style="margin: 0;">No Stuck Inventory</h4>
+                    </div>
+                    <p>Always a mathematical path to exit or convert positions. Users never get stuck with illiquid
+                        tokens — they can always convert to any other outcome.</p>
+                </div>
+            </div>
+
+            <div class="box box-success" style="margin-top: 1.5rem;">
+                <span class="box-title">Why This Matters for Prediction Markets</span>
+                <p>Traditional prediction markets suffer from <strong>liquidity fragmentation</strong> — each outcome
+                    competes for the same limited capital. NegRisk solves this by recognizing that NO tokens are
+                    mathematically linked, creating a "liquidity bridge" between all outcomes.</p>
+                <p style="margin-top: 0.75rem;">This is why Polymarket can offer 48+ country outcomes with $2M+ total
+                    liquidity, while a Grouped Binary approach would struggle to maintain depth across all outcomes.</p>
+            </div>
+
+            <h4>Worked Example: $10,000 Liquidity, 10 Countries</h4>
+            <p>Let's trace what happens when traders make $10 purchases sequentially.</p>
+
+            <div class="diagram">
+                <div class="diagram-title">Initial Setup</div>
+                <pre
+                    style="font-size: 0.85rem; margin: 0; padding: 1rem; background: #1e293b; color: #e2e8f0; border-radius: 6px;">
+10 Countries: Spain, France, Brazil, Argentina, England,
+              Germany, Italy, Portugal, Netherlands, Belgium
+
+Initial price: 10¢ YES / 90¢ NO each (10% probability)
+Market maker: $1,000 per country → 1,000 (YES+NO) pairs each</pre>
+            </div>
+
+            <h5 style="margin-top: 1.5rem;">Grouped Binary: After 10 Trades (mostly Spain)</h5>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Country</th>
+                            <th>YES Left</th>
+                            <th>NO Left</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Spain</strong></td>
+                            <td style="color: var(--danger);">312</td>
+                            <td>1,000</td>
+                            <td><span class="label label-danger">688 NO stuck!</span></td>
+                        </tr>
+                        <tr>
+                            <td>France</td>
+                            <td>800</td>
+                            <td>1,000</td>
+                            <td><span class="label label-warning">200 excess NO</span></td>
+                        </tr>
+                        <tr>
+                            <td>Brazil</td>
+                            <td>900</td>
+                            <td>1,000</td>
+                            <td><span class="label label-warning">100 excess NO</span></td>
+                        </tr>
+                        <tr>
+                            <td>Others...</td>
+                            <td>1,000</td>
+                            <td>1,000</td>
+                            <td><span class="label label-success">Balanced</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="box box-danger" style="margin-top: 1rem;">
+                <span class="box-title">Problem: Spain Liquidity Crisis</span>
+                <pre
+                    style="font-size: 0.85rem; margin: 0.5rem 0; padding: 1rem; background: #450a0a; color: #fecaca; border-radius: 6px;">
+Trade 11: Buy $10 Spain YES...
+
+Only 312 Spain YES left!
+Price jumps: 10¢ → 15¢ → 20¢ (slippage)
+$10 only buys 50 tokens instead of 100
+
+Meanwhile: 688 Spain NO tokens sitting useless 💀
+Market maker CANNOT move NO to other countries</pre>
+            </div>
+
+            <h5 style="margin-top: 1.5rem;">NegRisk: Market Maker Rebalances</h5>
+            <div class="box box-highlight">
+                <span class="box-title">NegRisk Conversion Magic</span>
+                <pre
+                    style="font-size: 0.85rem; margin: 0.5rem 0; padding: 1rem; background: #1e1b4b; color: #c7d2fe; border-radius: 6px;">
+Take 200 excess NO from each country:
+• 200 Spain NO + 200 France NO + 200 Brazil NO + ...
+= 2,000 complete NO sets (one from each country)
+= 10 NO tokens × 200 sets = $1,800 value (10 NO = $9)
+
+Convert → $1,800 USDC returned to market maker!</pre>
+                <p style="margin-top: 0.75rem;">Market maker uses $1,800 to mint 500 new Spain (YES+NO) pairs →
+                    <strong>Spain liquidity restored!</strong>
+                </p>
+            </div>
+
+            <div class="grid-2" style="margin-top: 1rem;">
+                <div class="card" style="border-left: 3px solid var(--danger);">
+                    <h4>Grouped Binary Result</h4>
+                    <ul style="font-size: 0.875rem;">
+                        <li>Spain YES remaining: <strong style="color: var(--danger);">312</strong></li>
+                        <li>Slippage: <strong style="color: var(--danger);">HIGH</strong></li>
+                        <li>Excess NO: <strong>STUCK</strong></li>
+                        <li>Next trader pays: <strong>+50% more</strong></li>
+                    </ul>
+                </div>
+                <div class="card" style="border-left: 3px solid var(--success);">
+                    <h4>NegRisk Result</h4>
+                    <ul style="font-size: 0.875rem;">
+                        <li>Spain YES remaining: <strong style="color: var(--success);">800</strong></li>
+                        <li>Slippage: <strong style="color: var(--success);">LOW</strong></li>
+                        <li>Excess NO: <strong>CONVERTED</strong></li>
+                        <li>Next trader pays: <strong>Normal price</strong></li>
+                    </ul>
+                </div>
+            </div>
+
+            <h4 style="margin-top: 2rem;">Who Does the Rebalancing?</h4>
+            <p>The NegRisk adapter is <strong>permissionless</strong> — anyone can call the conversion functions. In
+                practice:</p>
+
+            <div class="grid-2">
+                <div class="card">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;">
+                        <span style="font-size: 1.25rem;">🤖</span>
+                        <h4 style="margin: 0;">Arbitrage Bots</h4>
+                    </div>
+                    <p style="font-size: 0.875rem;">Automated bots monitor price discrepancies. When YES prices sum to
+                        ≠100%, they profit by converting — and rebalance liquidity as a side effect.</p>
+                </div>
+                <div class="card">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;">
+                        <span style="font-size: 1.25rem;">🏦</span>
+                        <h4 style="margin: 0;">Professional Market Makers</h4>
+                    </div>
+                    <p style="font-size: 0.875rem;">Firms like Wintermute, GSR run sophisticated strategies. They
+                        actively rebalance their inventory using NegRisk to maintain tight spreads.</p>
+                </div>
+                <div class="card">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;">
+                        <span style="font-size: 1.25rem;">⚙️</span>
+                        <h4 style="margin: 0;">Protocol Automation</h4>
+                    </div>
+                    <p style="font-size: 0.875rem;">Some protocols run keeper bots that automatically rebalance when
+                        inventory skews beyond thresholds — funded by trading fees.</p>
+                </div>
+                <div class="card">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;">
+                        <span style="font-size: 1.25rem;">💡</span>
+                        <h4 style="margin: 0;">Smart Traders</h4>
+                    </div>
+                    <p style="font-size: 0.875rem;">Any user who spots the opportunity can execute conversions. The
+                        economic incentive (profit from mispricing) ensures someone always does it.</p>
+                </div>
+            </div>
+
+            <div class="box box-highlight" style="margin-top: 1.5rem;">
+                <span class="box-title">Key Insight: Incentive Alignment</span>
+                <p>No single entity needs to be "the market maker." The NegRisk adapter creates <strong>economic
+                        incentives</strong> that naturally attract participants to rebalance liquidity. Arbitrageurs
+                    profit → Liquidity improves → Everyone wins.</p>
+            </div>
+
+            <h4 style="margin-top: 2rem;">How is Conversion Triggered?</h4>
+            <p>NegRisk contracts are <strong>passive</strong> — they don't auto-execute. External actors monitor and
+                trigger when profitable.</p>
+
+            <div class="diagram">
+                <div class="diagram-title">Trigger Flow: Off-chain Monitoring → On-chain Execution</div>
+                <div style="display: flex; flex-direction: column; gap: 0.5rem; padding: 1rem;">
+                    <div class="flow-step" style="background: var(--bg-subtle);">1. Off-chain Bot watches orderbooks via
+                        API/WebSocket</div>
+                    <div class="flow-arrow">↓</div>
+                    <div class="flow-step" style="background: var(--bg-subtle);">2. Calculates: Sum of YES prices = 103%
+                        → Profit opportunity!</div>
+                    <div class="flow-arrow">↓</div>
+                    <div class="flow-step" style="background: var(--bg-subtle);">3. Calls NegRisk contract:
+                        <code>convertPosition()</code>
+                    </div>
+                    <div class="flow-arrow">↓</div>
+                    <div class="flow-step final"
+                        style="background: linear-gradient(135deg, #dcfce7, #bbf7d0); color: #166534;">4. Bot profits +
+                        Liquidity rebalanced (side effect)</div>
+                </div>
+            </div>
+
+            <h5 style="margin-top: 1.5rem;">Example: Arbitrage Bot Logic</h5>
+            <pre style="font-size: 0.8rem; background: #1e293b; color: #e2e8f0; padding: 1.25rem; border-radius: 8px;">
+<span class="code-comment">// Off-chain bot (runs continuously, 24/7)</span>
+<span class="code-keyword">while</span> (true) {
+    <span class="code-comment">// 1. Fetch all YES prices from orderbook</span>
+    <span class="code-keyword">const</span> prices = <span class="code-keyword">await</span> getYesPrices(); <span class="code-comment">// [0.16, 0.14, 0.13, ...]</span>
+    <span class="code-keyword">const</span> sum = prices.reduce((a, b) => a + b); <span class="code-comment">// 1.03 (103%)</span>
+
+    <span class="code-comment">// 2. Check if profitable after gas costs</span>
+    <span class="code-keyword">const</span> profit = sum - <span class="code-value">1.0</span>;  <span class="code-comment">// 0.03 (3%)</span>
+    <span class="code-keyword">const</span> gasCost = <span class="code-value">0.005</span>;     <span class="code-comment">// ~$5 in gas</span>
+
+    <span class="code-keyword">if</span> (profit > gasCost) {
+        <span class="code-comment">// 3. Execute on-chain conversion</span>
+        <span class="code-keyword">await</span> negRiskAdapter.convertPosition(...);
+        console.log(<span class="code-value">"Profit captured!"</span>);
+    }
+
+    <span class="code-keyword">await</span> sleep(<span class="code-value">100</span>); <span class="code-comment">// Check every 100ms</span>
+}</pre>
+
+            <h5 style="margin-top: 1.5rem;">Trigger Mechanisms Comparison</h5>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Actor</th>
+                            <th>How They Monitor</th>
+                            <th>When They Trigger</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Arbitrage Bots</strong></td>
+                            <td>WebSocket price feeds 24/7</td>
+                            <td>YES sum ≠ 100% (instant, ~100ms)</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Market Makers</strong></td>
+                            <td>Internal inventory tracking</td>
+                            <td>Inventory skew > threshold</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Chainlink Automation</strong></td>
+                            <td>On-chain <code>checkUpkeep()</code></td>
+                            <td>Configurable conditions met</td>
+                        </tr>
+                        <tr>
+                            <td><strong>MEV Searchers</strong></td>
+                            <td>Mempool monitoring</td>
+                            <td>Spot profitable txs to frontrun</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="box box-success" style="margin-top: 1.5rem;">
+                <span class="box-title">Self-Sustaining System</span>
+                <p>The "WHEN" is determined by <strong>profit</strong>, not by the protocol:</p>
+                <ul style="margin-top: 0.5rem;">
+                    <li><strong>Profit exists?</strong> → Someone triggers within milliseconds</li>
+                    <li><strong>No profit?</strong> → No one triggers (no need to rebalance)</li>
+                </ul>
+                <p style="margin-top: 0.75rem;">This is why it's self-sustaining — the system doesn't need to know when.
+                    Economic incentives ensure it happens automatically.</p>
+            </div>
+        </section>
+
+        <!-- Section 1.6: NegRisk Architecture -->
+        <section id="negrisk-arch" class="part-2-section">
+            <h3><span class="section-num part-2">2.6</span>NegRisk Architecture</h3>
+
+            <div class="box box-highlight">
+                <span class="box-title">Open Source Reference</span>
+                <p>Polymarket's NegRisk implementation is open source and audited by ChainSecurity and OpenZeppelin.</p>
+                <p style="margin-top: 0.75rem; font-size: 0.8125rem;">
+                    <a href="https://github.com/Polymarket/neg-risk-ctf-adapter" target="_blank"
+                        style="color: var(--accent);">GitHub: Polymarket/neg-risk-ctf-adapter →</a>
+                </p>
+                <p style="font-size: 0.8125rem; color: var(--text-muted); margin-top: 0.5rem;">
+                    Contains: NegRiskAdapter, NegRiskOperator, NegRiskCtfExchange, WrappedCollateral, Vault, FeeModule
+                </p>
+            </div>
+
+            <h4>Architecture Layers</h4>
+            <div class="arch-layer">
+                <div class="arch-layer-title">User Interface</div>
+                <div class="arch-layer-content">
+                    <div class="func">"Convert my Spain YES to France YES"</div>
+                </div>
+            </div>
+
+            <div class="arch-arrow">↓</div>
+
+            <div class="arch-layer">
+                <div class="arch-layer-title">NegRisk Adapter</div>
+                <div class="arch-layer-content">
+                    <div class="func">splitPosition()</div>
+                    <div class="func">mergePositions()</div>
+                    <div class="func">convertPosition()</div>
+                </div>
+                <p style="text-align: center; margin-top: 0.75rem; font-size: 0.9rem; color: var(--text-muted);">
+                    Core: USDC ↔ NO tokens ↔ YES tokens conversion</p>
+            </div>
+
+            <div class="arch-arrow">↓</div>
+
+            <div class="arch-layer">
+                <div class="arch-layer-title">Grouped Binary Markets</div>
+                <p style="text-align: center; font-size: 0.9rem; color: var(--text-muted);">
+                    Spain YES/NO | France YES/NO | Brazil YES/NO | ...<br>
+                    All linked by <code>negRiskMarketId</code>
+                </p>
+            </div>
+
+            <div class="arch-arrow">↓</div>
+
+            <div class="arch-layer">
+                <div class="arch-layer-title">Conditional Tokens Framework (CTF)</div>
+                <p style="text-align: center; font-size: 0.9rem; color: var(--text-muted);">Base layer for all token
+                    operations</p>
+            </div>
+
+            <h4>Key Contracts</h4>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Contract</th>
+                            <th>Purpose</th>
+                            <th>Nostra Has?</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>NegRiskAdapter</strong></td>
+                            <td>Core conversion logic (NO → YES)</td>
+                            <td><span class="label label-danger">No</span></td>
+                        </tr>
+                        <tr>
+                            <td><strong>NegRiskOperator</strong></td>
+                            <td>Admin functions, oracle integration</td>
+                            <td><span class="label label-danger">No</span></td>
+                        </tr>
+                        <tr>
+                            <td><strong>WrappedCollateral</strong></td>
+                            <td>Wrapped USDC for atomic operations</td>
+                            <td><span class="label label-danger">No</span></td>
+                        </tr>
+                        <tr>
+                            <td>ConditionalTokens (CTF)</td>
+                            <td>Base token framework</td>
+                            <td><span class="label label-success">Yes</span></td>
+                        </tr>
+                        <tr>
+                            <td>MarketFactory</td>
+                            <td>Create binary markets</td>
+                            <td><span class="label label-success">Yes</span></td>
+                        </tr>
+                        <tr>
+                            <td>CTFExchange</td>
+                            <td>Order book trading</td>
+                            <td><span class="label label-success">Yes</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Section 1.7: Implementation Options -->
+        <section id="implementation-options" class="part-2-section">
+            <h3><span class="section-num part-2">2.7</span>Implementation Options</h3>
+
+            <h4>What Nostra Needs to Implement NegRisk</h4>
+            <ul class="impl-list">
+                <li>
+                    <span class="impl-number">1</span>
+                    <div class="impl-content">
+                        <strong>WrappedCollateral.sol</strong>
+                        <small>ERC20 wrapper around USDC for internal accounting</small>
+                    </div>
+                    <span class="difficulty difficulty-easy">Easy</span>
+                </li>
+                <li>
+                    <span class="impl-number">2</span>
+                    <div class="impl-content">
+                        <strong>NegRiskAdapter.sol</strong>
+                        <small>Core conversion logic: splitPosition, mergePositions, convertPosition</small>
+                    </div>
+                    <span class="difficulty difficulty-hard">Hard</span>
+                </li>
+                <li>
+                    <span class="impl-number">3</span>
+                    <div class="impl-content">
+                        <strong>NegRiskOperator.sol</strong>
+                        <small>Market group management, links binary markets together</small>
+                    </div>
+                    <span class="difficulty difficulty-medium">Medium</span>
+                </li>
+                <li>
+                    <span class="impl-number">4</span>
+                    <div class="impl-content">
+                        <strong>Database: negRiskMarketId field</strong>
+                        <small>Link markets in the same group</small>
+                    </div>
+                    <span class="difficulty difficulty-easy">Easy</span>
+                </li>
+                <li>
+                    <span class="impl-number">5</span>
+                    <div class="impl-content">
+                        <strong>API: /api/negrisk/convert endpoint</strong>
+                        <small>Handle conversion requests from frontend</small>
+                    </div>
+                    <span class="difficulty difficulty-medium">Medium</span>
+                </li>
+                <li>
+                    <span class="impl-number">6</span>
+                    <div class="impl-content">
+                        <strong>Frontend: Convert Position UI</strong>
+                        <small>Button to convert between outcomes in the same group</small>
+                    </div>
+                    <span class="difficulty difficulty-medium">Medium</span>
+                </li>
+            </ul>
+
+            <h4>Estimated Effort</h4>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Component</th>
+                            <th>Time</th>
+                            <th>Complexity</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Smart Contracts (1-3)</td>
+                            <td>2-3 weeks</td>
+                            <td>High (security critical)</td>
+                        </tr>
+                        <tr>
+                            <td>Backend API (4-5)</td>
+                            <td>3-5 days</td>
+                            <td>Medium</td>
+                        </tr>
+                        <tr>
+                            <td>Frontend UI (6)</td>
+                            <td>3-5 days</td>
+                            <td>Medium</td>
+                        </tr>
+                        <tr>
+                            <td>Testing & Audit</td>
+                            <td>2-4 weeks</td>
+                            <td>Critical</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Total</strong></td>
+                            <td><strong>6-10 weeks</strong></td>
+                            <td></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="box box-warning">
+                <span class="box-title">Alternative: Arbitrage Bots</span>
+                <p>Before implementing NegRisk, consider if you really need it. Current arbitrage bots can provide
+                    economic position balancing with much simpler implementation.</p>
+                <p><strong>When to implement NegRisk?</strong></p>
+                <ul>
+                    <li>High volume when conversion demand justifies complexity</li>
+                    <li>User complaints about stuck inventory</li>
+                    <li>Competitive pressure for Polymarket-level features</li>
+                </ul>
+            </div>
+        </section>
+
+        <!-- PART 2: CHAINLINK INTEGRATION -->
+        <div class="part-divider">
+            <h2>Part 3: Chainlink Oracle Integration</h2>
+            <span class="part-subtitle">Decentralized Market Resolution</span>
+        </div>
+
+        <!-- Section 2.1: Why Chainlink -->
+        <section id="why-chainlink" class="part-3-section">
+            <h3><span class="section-num part-3">3.1</span>Why Chainlink for Market Resolution</h3>
+
+            <h4>Current State: Manual Resolution</h4>
+            <div class="box box-danger">
+                <span class="box-title">Problems with Manual Resolution</span>
+                <ul>
+                    <li><strong>Centralized trust:</strong> Admin can manipulate outcomes</li>
+                    <li><strong>No verifiable source:</strong> Users must trust the platform</li>
+                    <li><strong>Human error risk:</strong> Manual process prone to mistakes</li>
+                </ul>
+            </div>
+
+            <h4>Chainlink Solution</h4>
+            <div class="box box-success">
+                <span class="box-title">Benefits of Chainlink Resolution</span>
+                <ul>
+                    <li><strong>Decentralized oracle network:</strong> Multiple nodes verify data</li>
+                    <li><strong>Verifiable data sources:</strong> Cryptographic proofs of authenticity</li>
+                    <li><strong>Trustless automation:</strong> No human intervention needed</li>
+                    <li><strong>Industry standard:</strong> Proven security track record</li>
+                </ul>
+            </div>
+
+            <div style="margin: 2rem 0; text-align: center;">
+                <img src="images/chainlink-architecture.png" alt="Chainlink Architecture"
+                    style="max-width: 100%; border-radius: 12px; border: 1px solid var(--border); box-shadow: var(--shadow-md);">
+                <p style="font-size: 0.8125rem; color: var(--text-muted); margin-top: 0.5rem;">Chainlink Decentralized
+                    Oracle Network (DON) Architecture</p>
+            </div>
+        </section>
+
+        <!-- Section 3.2: Getting Started with Chainlink -->
+        <section id="chainlink-setup" class="part-3-section">
+            <h3><span class="section-num part-3">3.2</span>Getting Started with Chainlink</h3>
+            <p>Before integrating Chainlink oracles into Nostra, there are essential preparation steps to ensure smooth
+                operation and cost management.</p>
+
+            <h4>Step 1: Acquire LINK Tokens</h4>
+            <div class="box box-highlight">
+                <span class="box-title">Why LINK Tokens?</span>
+                <p>LINK is the native token of the Chainlink network. It's required to pay oracle nodes for their
+                    services (data retrieval, computation, consensus).</p>
+                <ul>
+                    <li><strong>Payment mechanism:</strong> Oracle requests consume LINK as payment</li>
+                    <li><strong>Incentive alignment:</strong> Nodes stake LINK, losing it if they provide bad data</li>
+                    <li><strong>Network security:</strong> Economic incentives ensure honest behavior</li>
+                </ul>
+            </div>
+
+            <div class="grid-2">
+                <div class="card">
+                    <h4><span class="label label-accent">Mainnet LINK</span></h4>
+                    <ul>
+                        <li>Purchase from exchanges (Binance, Coinbase, etc.)</li>
+                        <li>Bridge to target chain (Polygon, BSC)</li>
+                        <li>Store in platform wallet</li>
+                        <li>Typical cost: ~$15-20 per LINK</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <h4><span class="label label-success">Testnet LINK</span></h4>
+                    <ul>
+                        <li>Free from Chainlink faucets</li>
+                        <li><a href="https://faucets.chain.link/" target="_blank">faucets.chain.link</a></li>
+                        <li>Use for development & testing</li>
+                        <li>Available on Sepolia, Mumbai, etc.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <h4>Step 2: Set Up Subscription (for Chainlink Functions)</h4>
+            <div class="diagram">
+                <div class="diagram-title">Chainlink Functions Subscription Model</div>
+                <div class="flow-steps">
+                    <div class="flow-step">
+                        <span class="step-number">1</span>
+                        <span class="step-text">Create Subscription</span>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step">
+                        <span class="step-number">2</span>
+                        <span class="step-text">Fund with LINK</span>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step">
+                        <span class="step-number">3</span>
+                        <span class="step-text">Add Consumer Contract</span>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step">
+                        <span class="step-number">4</span>
+                        <span class="step-text">Make Requests</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Step</th>
+                            <th>Action</th>
+                            <th>Tool/Method</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>1. Create Subscription</td>
+                            <td>Register a new subscription ID</td>
+                            <td><a href="https://functions.chain.link/" target="_blank">functions.chain.link</a> UI</td>
+                        </tr>
+                        <tr>
+                            <td>2. Fund Subscription</td>
+                            <td>Deposit LINK tokens (min 2 LINK recommended)</td>
+                            <td>UI or <code>addFunds()</code> contract call</td>
+                        </tr>
+                        <tr>
+                            <td>3. Add Consumer</td>
+                            <td>Whitelist your resolver contract address</td>
+                            <td><code>addConsumer(subscriptionId, consumerAddress)</code></td>
+                        </tr>
+                        <tr>
+                            <td>4. Configure Limits</td>
+                            <td>Set gas limits and callback gas</td>
+                            <td>Contract constructor or setter functions</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h4>Step 3: Deploy Consumer Contract</h4>
+            <pre>
+<span class="code-comment">// SPDX-License-Identifier: MIT</span>
+<span class="code-keyword">pragma solidity</span> ^0.8.19;
+
+<span class="code-keyword">import</span> {FunctionsClient} <span class="code-keyword">from</span> <span class="code-string">"@chainlink/contracts/src/v0.8/functions/v1_0_0/FunctionsClient.sol"</span>;
+<span class="code-keyword">import</span> {FunctionsRequest} <span class="code-keyword">from</span> <span class="code-string">"@chainlink/contracts/src/v0.8/functions/v1_0_0/libraries/FunctionsRequest.sol"</span>;
+
+<span class="code-keyword">contract</span> <span class="code-class">NostraMarketResolver</span> <span class="code-keyword">is</span> FunctionsClient {
+    <span class="code-keyword">using</span> FunctionsRequest <span class="code-keyword">for</span> FunctionsRequest.Request;
+
+    <span class="code-comment">// Subscription ID from Chainlink Functions UI</span>
+    <span class="code-keyword">uint64</span> <span class="code-keyword">private</span> subscriptionId;
+
+    <span class="code-comment">// Gas limit for callback</span>
+    <span class="code-keyword">uint32</span> <span class="code-keyword">private constant</span> GAS_LIMIT = <span class="code-value">300000</span>;
+
+    <span class="code-comment">// DON ID for the network (e.g., "fun-polygon-mainnet-1")</span>
+    <span class="code-keyword">bytes32</span> <span class="code-keyword">private</span> donId;
+
+    <span class="code-keyword">constructor</span>(
+        <span class="code-keyword">address</span> router,
+        <span class="code-keyword">uint64</span> _subscriptionId,
+        <span class="code-keyword">bytes32</span> _donId
+    ) FunctionsClient(router) {
+        subscriptionId = _subscriptionId;
+        donId = _donId;
+    }
+
+    <span class="code-comment">// Request market resolution</span>
+    <span class="code-keyword">function</span> <span class="code-function">requestResolution</span>(
+        <span class="code-keyword">bytes32</span> marketId,
+        <span class="code-keyword">string calldata</span> source,
+        <span class="code-keyword">string[] calldata</span> args
+    ) <span class="code-keyword">external</span> <span class="code-keyword">returns</span> (<span class="code-keyword">bytes32</span> requestId) {
+        FunctionsRequest.Request <span class="code-keyword">memory</span> req;
+        req.initializeRequestForInlineJavaScript(source);
+
+        <span class="code-keyword">if</span> (args.length > <span class="code-value">0</span>) {
+            req.setArgs(args);
+        }
+
+        requestId = _sendRequest(
+            req.encodeCBOR(),
+            subscriptionId,
+            GAS_LIMIT,
+            donId
+        );
+    }
+}
+</pre>
+
+            <h4>Step 4: Estimate and Budget LINK Costs</h4>
+            <div class="box box-warning">
+                <span class="box-title">Cost Planning</span>
+                <p>LINK costs vary by network and request complexity. Plan your budget accordingly:</p>
+            </div>
+
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Service</th>
+                            <th>Cost per Request</th>
+                            <th>Notes</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Price Feeds</td>
+                            <td>Free (sponsored)</td>
+                            <td>Common pairs already funded by protocols</td>
+                        </tr>
+                        <tr>
+                            <td>Chainlink Functions</td>
+                            <td>~0.2-0.5 LINK</td>
+                            <td>Depends on computation & callback gas</td>
+                        </tr>
+                        <tr>
+                            <td>Chainlink Automation</td>
+                            <td>~0.1-0.3 LINK</td>
+                            <td>Per upkeep execution</td>
+                        </tr>
+                        <tr>
+                            <td>VRF (Randomness)</td>
+                            <td>~0.25 LINK</td>
+                            <td>If random selection needed</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h4>Step 5: Security Best Practices</h4>
+            <div class="grid-2">
+                <div class="card">
+                    <h4>🔐 Access Control</h4>
+                    <ul>
+                        <li>Use <code>onlyOwner</code> for admin functions</li>
+                        <li>Whitelist authorized callers</li>
+                        <li>Implement timelock for critical changes</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <h4>💰 Fund Management</h4>
+                    <ul>
+                        <li>Monitor subscription balance</li>
+                        <li>Set up low-balance alerts</li>
+                        <li>Use multisig for fund deposits</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="box box-success">
+                <span class="box-title">Quick Start Checklist</span>
+                <ul style="list-style: none; padding-left: 0;">
+                    <li>☐ Acquire testnet LINK from faucet</li>
+                    <li>☐ Create subscription at functions.chain.link</li>
+                    <li>☐ Fund subscription with minimum 2 LINK</li>
+                    <li>☐ Deploy consumer contract</li>
+                    <li>☐ Add consumer to subscription</li>
+                    <li>☐ Test with simple request</li>
+                    <li>☐ Monitor for successful callback</li>
+                    <li>☐ Repeat on mainnet with real LINK</li>
+                </ul>
+            </div>
+        </section>
+
+        <!-- Section 3.3: Handling Long-tail Markets -->
+        <section id="long-tail-markets" class="part-3-section">
+            <h3><span class="section-num part-3">3.3</span>Handling Long-tail & Unstructured Markets</h3>
+            <p>What if we want to resolve a niche market like <em>"Who won the local 'Our Ballad' singing
+                    contest?"</em>?</p>
+
+            <h4>Scenario A: Data Exists Online</h4>
+            <div class="box box-highlight">
+                <span class="box-title">Solution: Chainlink Functions</span>
+                <p>If the result is published on an official website, news article, or Wikipedia:</p>
+                <ol>
+                    <li><strong>Developer</strong> writes a JavaScript script to scrape the winner's name (e.g., from
+                        <code>div.winner</code>).
+                    </li>
+                    <li><strong>Chainlink Nodes (DON)</strong> execute this script and fetch the data.</li>
+                    <li><strong>Consensus</strong> is reached, and the result ("Kim Cheol-soo") is delivered on-chain.
+                    </li>
+                </ol>
+                <p style="color: #166534; font-weight: 500; margin-top: 0.5rem;">✓ Best for: Verifiable digital data
+                    sources.</p>
+            </div>
+
+            <h4>Scenario B: No Digital Footprint</h4>
+            <div class="box box-danger">
+                <span class="box-title">The Limitation</span>
+                <p>If the contest is so small that no news covers it and there's no website, <strong>Chainlink cannot
+                        resolve it</strong>. Chainlink is a delivery service for real-world data, not a creator of
+                    truth.</p>
+            </div>
+
+            <h4>Alternative: UMA (Optimistic Oracle)</h4>
+            <p>For unstructured, long-tail markets where no API exists, <strong>UMA</strong> offers a human-powered
+                solution (used by Polymarket).</p>
+
+            <div class="grid-2">
+                <div class="card">
+                    <h4>How UMA Works</h4>
+                    <ol style="font-size: 0.875rem;">
+                        <li><strong>Proposal:</strong> Anyone asserts "Kim Cheol-soo won".</li>
+                        <li><strong>Challenge Period:</strong> A window (e.g., 2 hours) opens for disputes.</li>
+                        <li><strong>Finalization:</strong> If no dispute, the answer is accepted.</li>
+                        <li><strong>Dispute:</strong> If challenged, token holders vote to decide the truth.</li>
+                    </ol>
+                </div>
+                <div class="card">
+                    <h4>Pros & Cons</h4>
+                    <ul style="font-size: 0.875rem;">
+                        <li><span style="color: #166534;">✓</span> Works for ANY question humans can verify.</li>
+                        <li><span style="color: #166534;">✓</span> No API required.</li>
+                        <li><span style="color: #991b1b;">✗</span> Slower (requires challenge period).</li>
+                        <li><span style="color: #991b1b;">✗</span> More complex game theory.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="box box-warning">
+                <span class="box-title">Summary: Choosing the Right Oracle</span>
+                <ul>
+                    <li><strong>Website/API exists</strong> → <span class="label label-primary">Chainlink
+                            Functions</span> (Cleanest, Fastest)</li>
+                    <li><strong>No digital info</strong> → <span class="label label-warning">UMA (Optimistic)</span> or
+                        <span class="label label-danger">Manual Admin</span> (Cheapest)
+                    </li>
+                </ul>
+            </div>
+        </section>
+
+        <!-- Section 2.3: Chainlink Products -->
+        <section id="chainlink-products" class="part-3-section">
+            <h3><span class="section-num part-3">3.4</span>Chainlink Products Overview</h3>
+
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Product</th>
+                            <th>Use Case</th>
+                            <th>Best For</th>
+                            <th>Cost</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Data Feeds</strong></td>
+                            <td>Price data (BTC, ETH, stocks)</td>
+                            <td>"Will BTC exceed $100K?"</td>
+                            <td><span class="label label-success">FREE</span></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Functions</strong></td>
+                            <td>Custom API calls</td>
+                            <td>Sports scores, election results</td>
+                            <td>~0.25 LINK/request</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Automation</strong></td>
+                            <td>Scheduled/conditional execution</td>
+                            <td>Auto-resolve at deadline</td>
+                            <td>~0.1 LINK/execution</td>
+                        </tr>
+                        <tr>
+                            <td><strong>VRF</strong></td>
+                            <td>Verifiable randomness</td>
+                            <td>Lottery-style markets</td>
+                            <td>~0.25 LINK/request</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Detailed Product Summaries -->
+            <h4>Detailed Product Summaries</h4>
+
+            <!-- Data Feeds -->
+            <div class="box" style="border-left: 4px solid #22c55e; margin-bottom: 1.5rem;">
+                <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem;">
+                    <span style="font-size: 1.5rem;">📈</span>
+                    <span class="box-title" style="margin: 0;">Data Feeds (Price Feeds)</span>
+                    <span class="label label-success">FREE</span>
+                </div>
+                <p><strong>What it does:</strong> Provides real-time, tamper-proof price data aggregated from multiple
+                    premium data providers.</p>
+                <div class="grid-2" style="margin: 1rem 0;">
+                    <div>
+                        <p style="font-size: 0.875rem; margin-bottom: 0.5rem;"><strong>How it works:</strong></p>
+                        <ol style="font-size: 0.875rem; margin: 0;">
+                            <li>Multiple Chainlink nodes fetch prices from exchanges</li>
+                            <li>Prices are aggregated (median) for manipulation resistance</li>
+                            <li>Result stored on-chain, updated regularly</li>
+                            <li>Your contract reads the latest price directly</li>
+                        </ol>
+                    </div>
+                    <div>
+                        <p style="font-size: 0.875rem; margin-bottom: 0.5rem;"><strong>Best for:</strong></p>
+                        <ul style="font-size: 0.875rem; margin: 0;">
+                            <li>"Will BTC exceed $100K by Dec 2025?"</li>
+                            <li>"Will ETH/USD be above $5,000?"</li>
+                            <li>Crypto, forex, commodities markets</li>
+                        </ul>
+                    </div>
+                </div>
+                <pre style="font-size: 0.8rem; margin: 0;">
+<span class="code-comment">// Simple usage - read price directly</span>
+(, int256 price, , , ) = priceFeed.latestRoundData();
+<span class="code-keyword">bool</span> yesWins = price > threshold;</pre>
+            </div>
+
+            <!-- Functions -->
+            <div class="box" style="border-left: 4px solid #3b82f6; margin-bottom: 1.5rem;">
+                <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem;">
+                    <span style="font-size: 1.5rem;">⚡</span>
+                    <span class="box-title" style="margin: 0;">Chainlink Functions</span>
+                    <span class="label label-accent">~0.2-0.5 LINK</span>
+                </div>
+                <p><strong>What it does:</strong> Execute custom JavaScript code on Chainlink's Decentralized Oracle
+                    Network (DON) to fetch data from any API.</p>
+                <div class="grid-2" style="margin: 1rem 0;">
+                    <div>
+                        <p style="font-size: 0.875rem; margin-bottom: 0.5rem;"><strong>How it works:</strong></p>
+                        <ol style="font-size: 0.875rem; margin: 0;">
+                            <li>Write JavaScript to fetch/process data</li>
+                            <li>Contract sends request to DON</li>
+                            <li>Multiple nodes execute your script</li>
+                            <li>Consensus result returned on-chain</li>
+                        </ol>
+                    </div>
+                    <div>
+                        <p style="font-size: 0.875rem; margin-bottom: 0.5rem;"><strong>Best for:</strong></p>
+                        <ul style="font-size: 0.875rem; margin: 0;">
+                            <li>Sports scores (ESPN, official league APIs)</li>
+                            <li>Election results (government sources)</li>
+                            <li>Weather data, custom events</li>
+                            <li>Any data with a public API</li>
+                        </ul>
+                    </div>
+                </div>
+                <pre style="font-size: 0.8rem; margin: 0;">
+<span class="code-comment">// JavaScript executed by DON</span>
+<span class="code-keyword">const</span> response = <span class="code-keyword">await</span> Functions.makeHttpRequest({
+  url: <span class="code-string">`https://api.sports.io/match/${args[0]}`</span>
+});
+<span class="code-keyword">return</span> Functions.encodeString(response.data.winner);</pre>
+            </div>
+
+            <!-- Automation -->
+            <div class="box" style="border-left: 4px solid #8b5cf6; margin-bottom: 1.5rem;">
+                <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem;">
+                    <span style="font-size: 1.5rem;">⏰</span>
+                    <span class="box-title" style="margin: 0;">Chainlink Automation</span>
+                    <span class="label" style="background: #8b5cf6; color: white;">~0.1-0.3 LINK</span>
+                </div>
+                <p><strong>What it does:</strong> Automatically trigger smart contract functions based on time schedules
+                    or custom conditions.</p>
+                <div class="grid-2" style="margin: 1rem 0;">
+                    <div>
+                        <p style="font-size: 0.875rem; margin-bottom: 0.5rem;"><strong>How it works:</strong></p>
+                        <ol style="font-size: 0.875rem; margin: 0;">
+                            <li>Register your contract as an "Upkeep"</li>
+                            <li>Define trigger: time-based or condition-based</li>
+                            <li>Chainlink nodes monitor your conditions</li>
+                            <li>When triggered, <code>performUpkeep()</code> is called</li>
+                        </ol>
+                    </div>
+                    <div>
+                        <p style="font-size: 0.875rem; margin-bottom: 0.5rem;"><strong>Best for:</strong></p>
+                        <ul style="font-size: 0.875rem; margin: 0;">
+                            <li>Auto-resolve markets at deadline</li>
+                            <li>Trigger resolution when conditions met</li>
+                            <li>Scheduled price checks</li>
+                            <li>Any "cron job" style automation</li>
+                        </ul>
+                    </div>
+                </div>
+                <pre style="font-size: 0.8rem; margin: 0;">
+<span class="code-comment">// Automation-compatible contract</span>
+<span class="code-keyword">function</span> checkUpkeep(<span class="code-keyword">bytes calldata</span>) <span class="code-keyword">external view returns</span> (<span class="code-keyword">bool</span> upkeepNeeded, <span class="code-keyword">bytes memory</span>) {
+    upkeepNeeded = block.timestamp >= market.deadline && !market.resolved;
+}
+<span class="code-keyword">function</span> performUpkeep(<span class="code-keyword">bytes calldata</span>) <span class="code-keyword">external</span> { resolveMarket(); }</pre>
+            </div>
+
+            <!-- VRF -->
+            <div class="box" style="border-left: 4px solid #ec4899; margin-bottom: 1.5rem;">
+                <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem;">
+                    <span style="font-size: 1.5rem;">🎲</span>
+                    <span class="box-title" style="margin: 0;">Chainlink VRF (Verifiable Random Function)</span>
+                    <span class="label" style="background: #ec4899; color: white;">~0.25 LINK</span>
+                </div>
+                <p><strong>What it does:</strong> Generates cryptographically secure, verifiable random numbers that
+                    cannot be manipulated by miners, nodes, or users.</p>
+                <div class="grid-2" style="margin: 1rem 0;">
+                    <div>
+                        <p style="font-size: 0.875rem; margin-bottom: 0.5rem;"><strong>How it works:</strong></p>
+                        <ol style="font-size: 0.875rem; margin: 0;">
+                            <li>Contract requests random number</li>
+                            <li>Chainlink node generates random + cryptographic proof</li>
+                            <li>Proof verified on-chain (tamper-proof)</li>
+                            <li>Random number delivered to your contract</li>
+                        </ol>
+                    </div>
+                    <div>
+                        <p style="font-size: 0.875rem; margin-bottom: 0.5rem;"><strong>Best for:</strong></p>
+                        <ul style="font-size: 0.875rem; margin: 0;">
+                            <li>Lottery-style prediction markets</li>
+                            <li>Random winner selection</li>
+                            <li>Fair tie-breakers</li>
+                            <li>Any provably fair randomness needs</li>
+                        </ul>
+                    </div>
+                </div>
+                <pre style="font-size: 0.8rem; margin: 0;">
+<span class="code-comment">// Request random number</span>
+<span class="code-keyword">uint256</span> requestId = COORDINATOR.requestRandomWords(keyHash, subId, confirmations, gasLimit, numWords);
+
+<span class="code-comment">// Callback with verified random</span>
+<span class="code-keyword">function</span> fulfillRandomWords(<span class="code-keyword">uint256</span>, <span class="code-keyword">uint256[] memory</span> randomWords) <span class="code-keyword">internal override</span> {
+    winner = participants[randomWords[0] % participants.length];
+}</pre>
+            </div>
+
+            <!-- Optimistic Oracle Pattern -->
+            <div class="box" style="border-left: 4px solid #f59e0b; margin-bottom: 1.5rem;">
+                <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem;">
+                    <span style="font-size: 1.5rem;">⚖️</span>
+                    <span class="box-title" style="margin: 0;">Optimistic Oracle Pattern (Hybrid)</span>
+                    <span class="label" style="background: #f59e0b; color: white;">Cost-Efficient</span>
+                </div>
+                <p><strong>What it does:</strong> A cost-saving pattern where results are proposed by an admin/proposer
+                    and only verified by Chainlink if disputed.</p>
+                <div class="grid-2" style="margin: 1rem 0;">
+                    <div>
+                        <p style="font-size: 0.875rem; margin-bottom: 0.5rem;"><strong>How it works:</strong></p>
+                        <ol style="font-size: 0.875rem; margin: 0;">
+                            <li>Admin proposes market result</li>
+                            <li>Challenge period begins (e.g., 24-48 hours)</li>
+                            <li>If no dispute → Result finalized (FREE)</li>
+                            <li>If disputed → Chainlink Functions verifies</li>
+                        </ol>
+                    </div>
+                    <div>
+                        <p style="font-size: 0.875rem; margin-bottom: 0.5rem;"><strong>Best for:</strong></p>
+                        <ul style="font-size: 0.875rem; margin: 0;">
+                            <li>High-volume markets (cost savings)</li>
+                            <li>Trusted admin environments</li>
+                            <li>Markets with clear, verifiable outcomes</li>
+                            <li>When Chainlink is backup, not primary</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="diagram" style="margin-top: 1rem;">
+                    <div class="diagram-title">Optimistic Resolution Flow</div>
+                    <div class="flow-steps">
+                        <div class="flow-step">
+                            <span class="step-number">1</span>
+                            <span class="step-text">Admin Proposes</span>
+                        </div>
+                        <div class="flow-arrow">→</div>
+                        <div class="flow-step">
+                            <span class="step-number">2</span>
+                            <span class="step-text">Challenge Period</span>
+                        </div>
+                        <div class="flow-arrow">→</div>
+                        <div class="flow-step">
+                            <span class="step-number">3</span>
+                            <span class="step-text">Dispute? → Chainlink</span>
+                        </div>
+                        <div class="flow-arrow">→</div>
+                        <div class="flow-step">
+                            <span class="step-number">4</span>
+                            <span class="step-text">Finalize</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="box box-warning" style="margin-top: 1rem;">
+                    <span class="box-title">Trade-off</span>
+                    <p style="margin: 0; font-size: 0.875rem;"><strong>Pro:</strong> ~90% cost reduction if disputes are
+                        rare. <strong>Con:</strong> Delayed finality due to challenge period.</p>
+                </div>
+            </div>
+
+            <!-- Summary Comparison -->
+            <h4>When to Use Each Product</h4>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Scenario</th>
+                            <th>Recommended Product</th>
+                            <th>Why</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Price-based markets (crypto, forex)</td>
+                            <td><strong>Data Feeds + Automation</strong></td>
+                            <td>Free price data, auto-trigger at deadline</td>
+                        </tr>
+                        <tr>
+                            <td>Sports, elections, custom events</td>
+                            <td><strong>Functions + Automation</strong></td>
+                            <td>Flexible API access, scheduled checks</td>
+                        </tr>
+                        <tr>
+                            <td>High-volume with trusted admin</td>
+                            <td><strong>Optimistic + Functions</strong></td>
+                            <td>Cost savings, Chainlink as dispute resolver</td>
+                        </tr>
+                        <tr>
+                            <td>Lottery/random selection markets</td>
+                            <td><strong>VRF</strong></td>
+                            <td>Provably fair, manipulation-proof</td>
+                        </tr>
+                        <tr>
+                            <td>Long-tail/niche markets</td>
+                            <td><strong>Functions (custom JS)</strong></td>
+                            <td>Scrape any public data source</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Section 2.4: Resolution Architecture -->
+        <section id="resolution-arch" class="part-3-section">
+            <h3><span class="section-num part-3">3.5</span>Resolution Architecture</h3>
+
+            <h4>Current vs Proposed Flow</h4>
+            <div class="grid-2">
+                <div class="card">
+                    <h4>Current: Admin Resolution</h4>
+                    <div class="flow-step">Admin UI</div>
+                    <div class="flow-arrow">↓</div>
+                    <div class="flow-step">POST /api/admin/resolve</div>
+                    <div class="flow-arrow">↓</div>
+                    <div class="flow-step">Server Wallet signs tx</div>
+                    <div class="flow-arrow">↓</div>
+                    <div class="flow-step final">reportPayouts() → Resolved</div>
+                    <p style="font-size: 0.8125rem; margin-top: 1rem; color: #991b1b;"><strong>Admin manually decides
+                            winner</strong></p>
+                </div>
+                <div class="card">
+                    <h4>Proposed: Chainlink Resolution</h4>
+                    <div class="flow-step">Market Deadline</div>
+                    <div class="flow-arrow">↓</div>
+                    <div class="flow-step">Chainlink Automation triggers</div>
+                    <div class="flow-arrow">↓</div>
+                    <div class="flow-step">Contract reads Price Feed</div>
+                    <div class="flow-arrow">↓</div>
+                    <div class="flow-step final">reportPayouts() → Resolved</div>
+                    <p style="font-size: 0.8125rem; margin-top: 1rem; color: #166534;"><strong>Data-driven automatic
+                            resolution</strong></p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 2.5: Smart Contract Integration -->
+        <section id="smart-contracts" class="part-3-section">
+            <h3><span class="section-num part-3">3.6</span>Smart Contract Integration</h3>
+
+            <h4>Price Feed Resolver Example</h4>
+            <pre>
+<span class="code-comment">// SPDX-License-Identifier: MIT</span>
+<span class="code-keyword">pragma solidity</span> ^0.8.19;
+
+<span class="code-keyword">import</span> "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
+
+<span class="code-keyword">contract</span> PriceFeedResolver {
+    AggregatorV3Interface internal priceFeed;
+    IConditionalTokens public ctf;
+
+    <span class="code-keyword">struct</span> PriceMarket {
+        bytes32 questionId;
+        uint256 threshold;      <span class="code-comment">// Price threshold in 8 decimals</span>
+        bool resolveAbove;      <span class="code-comment">// true = YES wins if price > threshold</span>
+        uint256 deadline;
+        bool resolved;
+    }
+
+    mapping(bytes32 => PriceMarket) public markets;
+
+    <span class="code-keyword">function</span> resolveMarket(bytes32 questionId) <span class="code-keyword">external</span> {
+        PriceMarket storage market = markets[questionId];
+        <span class="code-keyword">require</span>(!market.resolved, <span class="code-value">"Already resolved"</span>);
+        <span class="code-keyword">require</span>(block.timestamp >= market.deadline, <span class="code-value">"Too early"</span>);
+
+        <span class="code-comment">// Get latest price from Chainlink</span>
+        (, int256 price, , , ) = priceFeed.latestRoundData();
+
+        <span class="code-comment">// Determine winner</span>
+        bool yesWins = market.resolveAbove
+            ? price > int256(market.threshold)
+            : price < int256(market.threshold);
+
+        <span class="code-comment">// Report payouts to CTF</span>
+        uint256[] memory payouts = new uint256[](2);
+        payouts[0] = yesWins ? 1 : 0;  <span class="code-comment">// YES outcome</span>
+        payouts[1] = yesWins ? 0 : 1;  <span class="code-comment">// NO outcome</span>
+
+        ctf.reportPayouts(questionId, payouts);
+        market.resolved = <span class="code-keyword">true</span>;
+    }
+}
+            </pre>
+
+            <h4>Chainlink Functions Example (JavaScript)</h4>
+            <pre>
+<span class="code-comment">// This code runs in Chainlink Functions DON</span>
+<span class="code-keyword">const</span> apiEndpoint = args[0];  <span class="code-comment">// e.g., "https://api.sportsdata.io/..."</span>
+<span class="code-keyword">const</span> jsonPath = args[1];     <span class="code-comment">// e.g., "Games[0].Winner"</span>
+
+<span class="code-keyword">const</span> response = <span class="code-keyword">await</span> Functions.makeHttpRequest({
+  url: apiEndpoint,
+  headers: { <span class="code-value">"Ocp-Apim-Subscription-Key"</span>: secrets.apiKey }
+});
+
+<span class="code-keyword">if</span> (response.error) {
+  <span class="code-keyword">throw</span> Error(<span class="code-value">"API request failed"</span>);
+}
+
+<span class="code-comment">// Navigate JSON path and return result</span>
+<span class="code-keyword">const</span> homeTeamWins = result === <span class="code-value">"HomeTeam"</span> ? 1 : 0;
+<span class="code-keyword">return</span> Functions.encodeUint256(homeTeamWins);
+            </pre>
+
+            <h4>Network Addresses</h4>
+            <div class="grid-2">
+                <div class="card">
+                    <h4>BSC Testnet</h4>
+                    <pre style="font-size: 0.75rem;">LINK: 0x84b9B910527Ad5C03A9Ca831909E21e236EA7b06
+BTC/USD: 0x5741306c21795FdCBb9b265Ea0255F499DFe515C
+ETH/USD: 0x143db3CEEfbdfe5631aDD3E50f7614B6ba708BA7
+BNB/USD: 0x2514895c72f50D8bd4B4F9b1110F0D6bD2c97526</pre>
+                </div>
+                <div class="card">
+                    <h4>Polygon Amoy</h4>
+                    <pre style="font-size: 0.75rem;">Functions Router: 0xC22a79eBA640940ABB6dF0f7982cc119578E11De
+BTC/USD: 0xe7656e23fE8077D438aEfbec2fAbDf2D8e070C4f
+ETH/USD: 0xF0d50568e3A7e8259E16663972b11910F89BD8e7</pre>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 2.6: Cost & Security -->
+        <section id="cost-security" class="part-3-section">
+            <h3><span class="section-num part-3">3.7</span>Cost & Security Considerations</h3>
+
+            <h4>Monthly Cost Estimation (100 markets)</h4>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Component</th>
+                            <th>Cost per Use</th>
+                            <th>Monthly (100 markets)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Data Feeds (read)</td>
+                            <td><span class="label label-success">FREE</span></td>
+                            <td>$0</td>
+                        </tr>
+                        <tr>
+                            <td>Functions Request</td>
+                            <td>~0.25 LINK</td>
+                            <td>25 LINK (~$250)</td>
+                        </tr>
+                        <tr>
+                            <td>Automation Check</td>
+                            <td>~0.01 LINK</td>
+                            <td>30 LINK (~$300)</td>
+                        </tr>
+                        <tr>
+                            <td>Automation Execute</td>
+                            <td>~0.1 LINK</td>
+                            <td>10 LINK (~$100)</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Total</strong></td>
+                            <td></td>
+                            <td><strong>~65 LINK (~$650)</strong></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h4>Security Considerations</h4>
+            <div class="grid-2">
+                <div class="card">
+                    <h4>Trust Assumptions</h4>
+                    <ul style="font-size: 0.875rem;">
+                        <li><strong>Data Feeds:</strong> High trust (decentralized nodes)</li>
+                        <li><strong>Functions:</strong> Medium (relies on API)</li>
+                        <li><strong>API Sources:</strong> Varies by provider</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <h4>Required Checks</h4>
+                    <ul style="font-size: 0.875rem;">
+                        <li>Validate Chainlink response data</li>
+                        <li>Handle Functions errors gracefully</li>
+                        <li>Implement fallback to manual</li>
+                        <li>Set appropriate gas limits</li>
+                        <li>Monitor subscription balances</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 2.7: Implementation Roadmap -->
+        <section id="roadmap" class="part-3-section">
+            <h3><span class="section-num part-3">3.8</span>Implementation Roadmap</h3>
+
+            <div class="grid-2">
+                <div class="card">
+                    <h4>Phase 1: Price Feed Markets (Week 1-2)</h4>
+                    <ul style="font-size: 0.875rem;">
+                        <li>Deploy PriceFeedResolver contract</li>
+                        <li>Test with BTC/USD, ETH/USD feeds</li>
+                        <li>Create "Will BTC exceed $X?" market</li>
+                        <li>Update frontend resolution page</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <h4>Phase 2: Automation (Week 3)</h4>
+                    <ul style="font-size: 0.875rem;">
+                        <li>Add AutomationCompatible to resolver</li>
+                        <li>Register Upkeep on Chainlink</li>
+                        <li>Test auto-resolution at deadline</li>
+                        <li>Monitor and tune gas settings</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <h4>Phase 3: Functions (Week 4-5)</h4>
+                    <ul style="font-size: 0.875rem;">
+                        <li>Set up Functions subscription</li>
+                        <li>Deploy FunctionsResolver contract</li>
+                        <li>Write JavaScript for sports API</li>
+                        <li>Handle edge cases (API down)</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <h4>Phase 4: Production (Week 6)</h4>
+                    <ul style="font-size: 0.875rem;">
+                        <li>Security audit</li>
+                        <li>Mainnet deployment</li>
+                        <li>Monitoring dashboards</li>
+                        <li>Admin fallback procedures</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="box box-highlight" style="margin-top: 2rem;">
+                <span class="box-title">Summary</span>
+                <div class="table-wrapper" style="margin-top: 1rem;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Market Type</th>
+                                <th>Chainlink Product</th>
+                                <th>Cost</th>
+                                <th>Complexity</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Price-based ("Will BTC > $X?")</td>
+                                <td>Data Feeds</td>
+                                <td><span class="label label-success">FREE</span></td>
+                                <td>Low</td>
+                            </tr>
+                            <tr>
+                                <td>Time-based auto-resolve</td>
+                                <td>Automation</td>
+                                <td>~$1/month</td>
+                                <td>Medium</td>
+                            </tr>
+                            <tr>
+                                <td>Event-based (sports, elections)</td>
+                                <td>Functions</td>
+                                <td>~$2.50/request</td>
+                                <td>High</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <p style="margin-top: 1rem;"><strong>Recommendation:</strong> Start with Price Feed markets (free,
+                    simple), add Automation for auto-resolve, then expand to Functions as needed.</p>
+            </div>
+        </section>
+
+        <footer>
+            <p>Nostra Technical Whitepaper | Version 1.0 | December 2025</p>
+        </footer>
+    </div>
+</body>
+
+</html>
