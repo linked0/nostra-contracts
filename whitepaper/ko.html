@@ -1,0 +1,1449 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nostra 기술 백서 - 시장 모델 및 오라클 통합</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <div class="lang-switch">
+                <a href="index.html" class="lang-link">🇺🇸 English</a>
+            </div>
+            <h1>Nostra 기술 백서</h1>
+            <p class="subtitle">고급 시장 모델 및 체인링크 오라클 통합</p>
+            <p class="author-info">작성자: 이현재 | 2025년 12월</p>
+        </header>
+
+        <nav class="toc">
+            <h2>목차</h2>
+            <div class="toc-grid">
+                <div>
+                    <div class="toc-section-title">1부: 시장 모델</div>
+                    <ul>
+                        <li><a href="#model-comparison">1.1 모델 비교 개요</a></li>
+                        <li><a href="#grouped-binary">1.2 Grouped Binary 모델 (Nostra)</a></li>
+                        <li><a href="#ctf-multi">1.3 CTF 다중 결과(Multi-Outcome) 모델</a></li>
+                        <li><a href="#negrisk">1.4 NegRisk 어댑터 (Polymarket)</a></li>
+                        <li><a href="#negrisk-conversion">1.5 NegRisk 변환 메커니즘</a></li>
+                        <li><a href="#negrisk-arch">1.6 NegRisk 아키텍처</a></li>
+                        <li><a href="#implementation-options">1.7 구현 옵션</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <div class="toc-section-title">2부: 체인링크 통합</div>
+                    <ul>
+                        <li><a href="#why-chainlink">2.1 시장 해결을 위한 체인링크</a></li>
+                        <li><a href="#long-tail-markets">2.2 롱테일 시장 처리</a></li>
+                        <li><a href="#chainlink-products">2.3 체인링크 제품 개요</a></li>
+                        <li><a href="#resolution-arch">2.4 해결 아키텍처</a></li>
+                        <li><a href="#smart-contracts">2.5 스마트 컨트랙트 통합</a></li>
+                        <li><a href="#cost-security">2.6 비용 및 보안</a></li>
+                        <li><a href="#roadmap">2.7 구현 로드맵</a></li>
+                    </ul>
+                </div>
+            </div>
+        </nav>
+
+        <!-- PART 1: MARKET MODELS -->
+        <div class="part-divider">
+            <h2>1부: 고급 시장 모델</h2>
+            <span class="part-subtitle">CTF 다중 결과 vs NegRisk 어댑터</span>
+        </div>
+
+        <!-- Section 1.1: Model Comparison -->
+        <section id="model-comparison">
+            <h3>1.1 시장 모델 비교 개요</h3>
+            <p>다중 결과 예측 시장을 위한 세 가지 주요 시장 모델 아키텍처 이해하기.</p>
+
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>기능</th>
+                            <th>Grouped Binary (Nostra)</th>
+                            <th>CTF 다중 결과</th>
+                            <th>Grouped Binary + NegRisk (Polymarket)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>초기 확률</strong></td>
+                            <td>유연함 (50% 또는 100/N%)</td>
+                            <td>유연함 (100/N% 또는 외부 설정)</td>
+                            <td>유연함 (시장 결정)</td>
+                        </tr>
+                        <tr>
+                            <td><strong>YES 가격의 합</strong></td>
+                            <td><span class="label label-danger">유연함 (연동 안됨)</span></td>
+                            <td><span class="label label-success">항상 = 100%</span></td>
+                            <td><span class="label label-success">~100%</span></td>
+                        </tr>
+                        <tr>
+                            <td><strong>시장 연동</strong></td>
+                            <td>독립적</td>
+                            <td>기계적 (Split/Merge)</td>
+                            <td>어댑터 (NegRisk)</td>
+                        </tr>
+                        <tr>
+                            <td><strong>재고 고립 (Stuck Inventory)</strong></td>
+                            <td><span class="label label-danger">있음</span></td>
+                            <td><span class="label label-success">없음</span></td>
+                            <td><span class="label label-success">없음</span></td>
+                        </tr>
+                        <tr>
+                            <td><strong>conditionId</strong></td>
+                            <td>다수 (결과별)</td>
+                            <td>단일 (공유)</td>
+                            <td>다수 + negRiskMarketId</td>
+                        </tr>
+                        <tr>
+                            <td><strong>포지션 변환</strong></td>
+                            <td><span class="label label-danger">불가능</span></td>
+                            <td><span class="label label-success">Merge를 통해</span></td>
+                            <td><span class="label label-success">어댑터를 통해</span></td>
+                        </tr>
+                        <tr>
+                            <td><strong>구현 난이도</strong></td>
+                            <td><span class="label label-success">간단함</span></td>
+                            <td><span class="label label-warning">복잡함</span></td>
+                            <td><span class="label label-warning">6-10주 소요</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="box box-highlight">
+                <span class="box-title">핵심 요약</span>
+                <ul>
+                    <li><strong>Nostra 현재:</strong> Grouped Binary - 구현은 간단하나 재고 고립 문제 발생</li>
+                    <li><strong>Polymarket:</strong> Grouped Binary + NegRisk - 어댑터 레이어로 재고 문제 해결</li>
+                    <li><strong>핵심 차이:</strong> 시장 연동 메커니즘 (없음 vs Split/Merge vs NegRisk 어댑터)</li>
+                </ul>
+            </div>
+        </section>
+
+        <!-- Section 1.2: Grouped Binary Model (Nostra) -->
+        <section id="grouped-binary">
+            <h3>1.2 Grouped Binary 모델 (Nostra)</h3>
+            <p>Grouped Binary 모델은 Nostra의 현재 구현 방식입니다. 다중 결과 질문의 각 결과는 자체 YES/NO 토큰을 가진 독립적인 바이너리 시장으로 취급됩니다.</p>
+
+            <h4>작동 방식</h4>
+            <div class="diagram">
+                <div class="diagram-title">Grouped Binary 아키텍처</div>
+                <p style="text-align: center; margin-bottom: 1rem; font-size: 0.875rem; color: var(--text-muted);">각 결과
+                    = 별도의 <code>conditionId</code>를 가진 독립적인 바이너리 시장</p>
+                <div class="diagram-content">
+                    <div class="token"><span class="token-slot">시장 1</span><br><strong>스페인</strong><br>YES / NO
+                    </div>
+                    <div class="token"><span class="token-slot">시장 2</span><br><strong>프랑스</strong><br>YES / NO
+                    </div>
+                    <div class="token"><span class="token-slot">시장 3</span><br><strong>브라질</strong><br>YES / NO
+                    </div>
+                    <div class="token"><span class="token-slot">시장 4</span><br><strong>아르헨티나</strong><br>YES /
+                        NO</div>
+                    <div class="token"><span class="token-slot">시장 5</span><br><strong>잉글랜드</strong><br>YES / NO
+                    </div>
+                </div>
+            </div>
+
+            <h4>주요 특징</h4>
+            <div class="grid-2">
+                <div class="card">
+                    <h4>장점</h4>
+                    <ul>
+                        <li><strong>간단한 구현:</strong> 각 시장이 독립적이라 생성 및 관리가 쉬움</li>
+                        <li><strong>익숙한 UX:</strong> 표준적인 YES/NO 베팅 인터페이스</li>
+                        <li><strong>유연한 가격 책정:</strong> 초기 가격에 대한 기계적 제약 없음</li>
+                        <li><strong>쉬운 해결:</strong> 승자 하나가 YES, 나머지는 NO로 해결</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <h4>단점</h4>
+                    <ul>
+                        <li><strong>시장 연동 부재:</strong> 가격의 합이 100%가 되지 않음</li>
+                        <li><strong>재고 고립:</strong> 스페인 YES를 프랑스 YES로 변환 불가</li>
+                        <li><strong>차익거래 누수:</strong> 기계적인 차익거래 강제 수단 없음</li>
+                        <li><strong>자본 비효율성:</strong> 포지션 변경 시 매도 후 재매수 필요</li>
+                    </ul>
+                </div>
+            </div>
+
+            <h4>재고 고립 (Stuck Inventory) 문제</h4>
+            <div class="box box-danger">
+                <span class="box-title">예시 시나리오</span>
+                <p>스페인 YES 토큰 100개를 개당 $0.25에 보유 중입니다. 스페인이 탈락했습니다. 이제 프랑스 YES를 원합니다:</p>
+                <ol>
+                    <li><strong>스페인 YES 매도:</strong> 가격이 $0.05로 폭락 → $5만 회수 ($20 손실)</li>
+                    <li><strong>프랑스 YES 매수:</strong> 가격이 $0.40로 상승 → 12.5개만 매수 가능</li>
+                </ol>
+                <p style="margin-top: 1rem;"><strong>결과:</strong> 이중 슬리피지와 심각한 가치 손실 발생. 포지션이 사실상 "고립(stuck)"됨.</p>
+            </div>
+
+            <div class="box box-highlight">
+                <span class="box-title">Grouped Binary가 적합한 경우</span>
+                <ul>
+                    <li>변환 수요가 적은 저유동성 시장</li>
+                    <li>결과가 적은 시장 (2-3개)</li>
+                    <li>포지션 변경이 드문 단기 시장</li>
+                    <li>단순함을 우선시하는 MVP/초기 단계 제품</li>
+                </ul>
+            </div>
+        </section>
+
+        <!-- Section 1.3: CTF Multi-Outcome -->
+        <section id="ctf-multi">
+            <h3>1.3 CTF 다중 결과(Multi-Outcome) 모델</h3>
+            <p>CTF 다중 결과 모델은 Conditional Tokens Framework를 사용하여 상호 배타적인 여러 결과를 처리하는 "순수한" 방식입니다. 각 결과가 별도 시장인 Grouped
+                Binary와 달리, CTF 다중 결과는 여러 결과 슬롯을 가진 단일 조건을 사용합니다.</p>
+
+            <h4>모델 구조 비교</h4>
+
+            <div class="diagram">
+                <div class="diagram-title">CTF 다중 결과 모델 — 단일 조건, 다중 결과</div>
+                <p style="text-align: center; margin-bottom: 1rem; font-size: 0.875rem; color: var(--text-muted);">모든
+                    결과가 하나의 <code>conditionId</code>를 공유
+                </p>
+                <div class="diagram-content">
+                    <div class="token"><strong>스페인</strong><br><span class="token-slot">Slot 0</span></div>
+                    <div class="token"><strong>프랑스</strong><br><span class="token-slot">Slot 1</span></div>
+                    <div class="token"><strong>브라질</strong><br><span class="token-slot">Slot 2</span></div>
+                    <div class="token"><strong>아르헨티나</strong><br><span class="token-slot">Slot 3</span></div>
+                    <div class="token"><strong>잉글랜드</strong><br><span class="token-slot">Slot 4</span></div>
+                </div>
+                <pre
+                    style="margin-top: 1.5rem;">prepareCondition(oracle, questionId, <span class="code-value">outcomeSlotCount=5</span>)</pre>
+            </div>
+
+            <h4>Split 및 Merge 작업</h4>
+            <p>CTF 다중 결과 모델은 Grouped Binary에서는 불가능한 기계적인 Split/Merge 작업을 가능하게 합니다:</p>
+
+            <div class="grid-2">
+                <div class="card">
+                    <h4>Split: USDC → 모든 토큰</h4>
+                    <p><code>$1 USDC</code> → 1 스페인 + 1 프랑스 + 1 브라질 + 1 아르헨티나 + 1 잉글랜드</p>
+                    <p style="font-size: 0.8125rem; color: var(--text-muted);">정확히 하나의 토큰만 $1 가치를 지니고, 나머지는 $0이 됨</p>
+                </div>
+                <div class="card">
+                    <h4>Merge: 모든 토큰 → USDC</h4>
+                    <p>1 스페인 + 1 프랑스 + 1 브라질 + 1 아르헨티나 + 1 잉글랜드 → <code>$1 USDC</code></p>
+                    <p style="font-size: 0.8125rem; color: var(--text-muted);">결과에 상관없이 $1 보장</p>
+                </div>
+            </div>
+
+            <div class="box box-success">
+                <span class="box-title">왜 합이 항상 100%인가</span>
+                <p>Split/Merge 메커니즘은 가격의 합이 100%가 되도록 강제하는 기계적 차익거래 기회를 만듭니다:</p>
+                <ul>
+                    <li><strong>합 > 100% 인 경우:</strong> 차익거래자가 $1 Split → 모든 토큰 매도 → 초과 수익</li>
+                    <li><strong>합 < 100% 인 경우:</strong> 차익거래자가 모든 토큰 저가 매수 → Merge → $1 수익</li>
+                </ul>
+            </div>
+        </section><!-- Section 1.4: NegRisk Adapter -->
+        <section id="negrisk">
+            <h3>1.4 NegRisk 어댑터 (Polymarket 방식)</h3>
+            <p><strong>NegRisk = Negative Risk</strong> — NO 토큰을 통해 포지션을 관리하는 방식입니다. 이는 NO 토큰의 등가성을 이용하여 그룹화된 바이너리 시장들을
+                연결하고 포지션
+                변환을 가능하게 하는 어댑터 레이어입니다.</p>
+
+            <h4>실제 사례: Polymarket 2026 FIFA 월드컵 우승자</h4>
+            <div class="box box-success">
+                <span class="box-title">라이브 시장 데이터</span>
+                <p>Polymarket의 "2026 FIFA 월드컵 우승자" 시장은 NegRisk가 실제로 작동하는 모습을 보여줍니다:</p>
+                <ul>
+                    <li><strong>총 거래량:</strong> $11.1M+ 거래됨</li>
+                    <li><strong>총 유동성:</strong> $2.08M</li>
+                    <li><strong>결과:</strong> 48개국 이상 (스페인, 프랑스, 잉글랜드, 브라질, 아르헨티나 등)</li>
+                    <li><strong>종료일:</strong> 2026년 7월 20일</li>
+                </ul>
+                <p style="margin-top: 1rem; font-size: 0.8125rem;">
+                    <a href="https://polymarket.com/event/2026-fifa-world-cup-winner-595" target="_blank"
+                        style="color: var(--accent);">Polymarket에서 보기 →</a>
+                    <span style="margin: 0 0.5rem; color: var(--text-muted);">|</span>
+                    <a href="https://gamma-api.polymarket.com/events?slug=2026-fifa-world-cup-winner-595"
+                        target="_blank" style="color: var(--secondary);">API 데이터 (JSON) →</a>
+                </p>
+            </div>
+
+            <h4>기술적 구조 (Polymarket API 기준)</h4>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>필드</th>
+                            <th>값</th>
+                            <th>목적</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>negRiskMarketId</code></td>
+                            <td><code style="font-size: 0.7rem;">0xb5c32a9acd39...</code></td>
+                            <td>48개 이상의 모든 바이너리 시장을 연결</td>
+                        </tr>
+                        <tr>
+                            <td><code>conditionId</code> (스페인)</td>
+                            <td><code style="font-size: 0.7rem;">0x7976b8dbacf9...</code></td>
+                            <td>결과별 고유 ID (각 국가마다 다름)</td>
+                        </tr>
+                        <tr>
+                            <td><code>conditionId</code> (브라질)</td>
+                            <td><code style="font-size: 0.7rem;">0x30d55d8124ee...</code></td>
+                            <td>다른 conditionId, 같은 negRiskMarketId</td>
+                        </tr>
+                        <tr>
+                            <td><code>clobTokenIds</code></td>
+                            <td>시장당 2개</td>
+                            <td>오더북용 YES 토큰 ID + NO 토큰 ID</td>
+                        </tr>
+                        <tr>
+                            <td><code>minTickSize</code></td>
+                            <td>0.01</td>
+                            <td>최소 가격 단위 ($0.01)</td>
+                        </tr>
+                        <tr>
+                            <td><code>minOrderSize</code></td>
+                            <td>5</td>
+                            <td>최소 주문 수량</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h4>현재 배당률 예시</h4>
+            <div class="diagram">
+                <div class="diagram-title">상위 경쟁자 — Polymarket 가격</div>
+                <div class="diagram-content">
+                    <div class="token"><strong>스페인</strong><br>16¢ YES<br><span class="token-slot">$169K vol</span>
+                    </div>
+                    <div class="token"><strong>프랑스</strong><br>14¢ YES<br><span class="token-slot">$142K vol</span>
+                    </div>
+                    <div class="token"><strong>잉글랜드</strong><br>13¢ YES<br><span class="token-slot">$128K vol</span>
+                    </div>
+                    <div class="token"><strong>브라질</strong><br>9¢ YES<br><span class="token-slot">$89K vol</span>
+                    </div>
+                    <div class="token"><strong>아르헨티나</strong><br>9¢ YES<br><span class="token-slot">$85K vol</span>
+                    </div>
+                </div>
+                <p style="text-align: center; margin-top: 1rem; font-size: 0.8125rem; color: var(--text-muted);">
+                    상위 5개 팀 합계 ≈ 61%. 나머지 ~39%는 43개 이상의 다른 국가들에 분산됨.
+                </p>
+            </div>
+
+            <h4>문제점: 재고 고립 (Stuck Inventory)</h4>
+            <div class="box box-danger">
+                <span class="box-title">Grouped Binary의 한계</span>
+                <p>Grouped Binary(Nostra의 현재 모델)에서는 각 결과가 독립적입니다. 스페인 YES를 보유하다가 프랑스 YES로 바꾸고 싶다면:</p>
+                <ol>
+                    <li>오더북에서 스페인 YES 매도 (슬리피지 위험)</li>
+                    <li>USDC로 프랑스 YES 매수 (추가 슬리피지)</li>
+                </ol>
+                <p><strong>직접적인 변환 불가능.</strong></p>
+            </div>
+
+            <h4>핵심 통찰: NO 토큰 등가성</h4>
+            <p>상호 배타적인 시장(오직 한 팀만 우승)에서, 모든 NO 토큰은 특별한 속성을 가집니다:</p>
+
+            <div class="box box-highlight">
+                <span class="box-title">수학적 등가성</span>
+                <p><strong>스페인 우승 시:</strong> 스페인 NO = $0, 하지만 프랑스 NO = $1, 브라질 NO = $1, 등등.</p>
+                <p><strong>프랑스 우승 시:</strong> 프랑스 NO = $0, 하지만 스페인 NO = $1, 브라질 NO = $1, 등등.</p>
+                <p style="margin-top: 1rem;"><strong>N개의 NO 토큰 (각 팀당 하나씩) = $(N-1) 가치 보장</strong></p>
+            </div>
+
+            <h4>예시: 5개 팀</h4>
+            <pre>
+<span class="code-comment">// 스페인 우승 시:</span>
+스페인 NO = <span class="code-value">$0</span>
+프랑스 NO = <span class="code-value">$1</span>
+브라질 NO = <span class="code-value">$1</span>
+아르헨티나 NO = <span class="code-value">$1</span>
+잉글랜드 NO = <span class="code-value">$1</span>
+<span class="code-keyword">합계 = $4</span>
+
+<span class="code-comment">// 프랑스 우승 시:</span>
+스페인 NO = <span class="code-value">$1</span>
+프랑스 NO = <span class="code-value">$0</span>
+브라질 NO = <span class="code-value">$1</span>
+아르헨티나 NO = <span class="code-value">$1</span>
+잉글랜드 NO = <span class="code-value">$1</span>
+<span class="code-keyword">합계 = $4</span>
+
+<span class="code-comment">// 누가 이기든: 합계 = $4 (항상!)</span>
+<span class="code-keyword">5 NO 토큰 = $4 = $(N-1)</span>
+            </pre>
+        </section>
+
+        <!-- Section 1.5: NegRisk Conversion -->
+        <section id="negrisk-conversion">
+            <h3>1.5 NegRisk 변환 메커니즘</h3>
+            <p>NegRisk는 수학적 등가성을 이용하여 포지션 변환을 가능하게 합니다:</p>
+
+            <h4>변환 공식: NO → YES</h4>
+            <div class="box box-highlight">
+                <p><strong>보유:</strong> 스페인 NO + 프랑스 NO + 브라질 NO + 아르헨티나 NO (4개 토큰)</p>
+                <p><strong>목표:</strong> 잉글랜드 YES</p>
+                <p style="margin-top: 1rem;"><strong>변환:</strong><br>
+                    4개의 NO 토큰 (잉글랜드 제외) = $3 보장 가치 = 1 잉글랜드 YES + 남은 USDC</p>
+                <p style="margin-top: 1rem;"><strong>결과:</strong><br>
+                    소각: 스페인 NO, 프랑스 NO, 브라질 NO, 아르헨티나 NO<br>
+                    수령: 1 잉글랜드 YES + 일부 USDC</p>
+            </div>
+
+            <h4>왜 이것이 작동하는가</h4>
+            <div class="grid-2">
+                <div class="card">
+                    <h4>NegRisk 없을 때</h4>
+                    <p>스페인 YES → 오더북 매도 → USDC → 프랑스 YES 매수</p>
+                    <p style="color: #991b1b;"><strong>문제:</strong> 두 거래 모두에서 슬리피지 발생, 유동성에 의존</p>
+                </div>
+                <div class="card">
+                    <h4>NegRisk 있을 때</h4>
+                    <p>스페인 YES → 어댑터 통해 변환 → 프랑스 YES</p>
+                    <p style="color: #166534;"><strong>이점:</strong> 수학적 변환, 변환 단계에서 슬리피지 없음</p>
+                </div>
+            </div>
+
+            <h4>주문 실행: YES 매수의 두 가지 경로</h4>
+            <p>사용자가 스페인 YES를 사고 싶을 때, 시스템은 최적의 실행 경로를 선택할 수 있습니다:</p>
+
+            <div class="grid-2">
+                <div class="card">
+                    <h4>경로 1: 직접 오더북</h4>
+                    <pre style="margin: 0.75rem 0; font-size: 0.8rem;">
+스페인 YES를 17¢ 매도호가에 직접 매수
+
+단순하지만, YES 측 유동성에 제한됨</pre>
+                </div>
+                <div class="card">
+                    <h4>경로 2: Mint + NO 매도 (NegRisk)</h4>
+                    <pre style="margin: 0.75rem 0; font-size: 0.8rem;">
+1단계: $1 USDC → 스페인 YES + NO 발행
+2단계: 스페인 NO를 83¢ 매수호가에 매도
+3단계: 스페인 YES 보유
+
+순 비용: $1.00 - $0.83 = 17¢</pre>
+                </div>
+            </div>
+
+            <h4>언제 경로 2가 유리한가?</h4>
+            <p>효율적인 시장에서는 두 경로의 가격이 비슷합니다. 하지만 <strong>유동성 깊이에 따라 슬리피지가 다릅니다</strong>:</p>
+
+            <div class="diagram">
+                <div class="diagram-title">예시: 스페인 YES 10,000개 매수</div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; padding: 1rem;">
+                    <div>
+                        <p style="font-weight: 600; color: var(--danger); margin-bottom: 0.5rem;">YES 오더북 (얇음)
+                        </p>
+                        <pre
+                            style="font-size: 0.8rem; margin: 0; background: #fef2f2; padding: 1rem; border-radius: 6px; border-left: 3px solid var(--danger); color: #b91c1c;">
+17¢: 2,000 shares
+18¢: 3,000 shares
+19¢: 2,500 shares
+20¢: 5,000 shares
+─────────────────
+평균가: ~18.5¢ ❌</pre>
+                    </div>
+                    <div>
+                        <p style="font-weight: 600; color: var(--success); margin-bottom: 0.5rem;">NO 오더북 (깊음)
+                        </p>
+                        <pre
+                            style="font-size: 0.8rem; margin: 0; background: #f0fdf4; padding: 1rem; border-radius: 6px; border-left: 3px solid var(--success); color: #15803d;">
+83¢: 50,000 shares
+82¢: 30,000 shares
+81¢: 20,000 shares
+
+─────────────────
+평균가: ~17.2¢ ✓</pre>
+                    </div>
+                </div>
+                <p style="text-align: center; margin-top: 0.75rem; font-size: 0.875rem; color: var(--text-muted);">
+                    NO 토큰은 종종 더 깊은 유동성을 가짐 → NegRisk 경로가 대량 주문에 더 유리함
+                </p>
+            </div>
+
+            <div class="box box-highlight" style="margin-top: 1.5rem;">
+                <span class="box-title">주문 라우터 로직</span>
+                <pre style="font-size: 0.8rem; margin: 0.75rem 0;">
+<span class="code-keyword">function</span> getBestExecutionPath(outcome, amount):
+
+    <span class="code-comment">// 직접 YES 매수 비용 계산</span>
+    directCost = simulateOrderbookBuy(outcome.YES, amount)
+
+    <span class="code-comment">// Mint + NO 매도 비용 계산</span>
+    mintCost = amount * $1.00
+    noProceeds = simulateOrderbookSell(outcome.NO, amount)
+    negRiskCost = mintCost - noProceeds
+
+    <span class="code-comment">// 더 저렴한 경로 반환</span>
+    <span class="code-keyword">return</span> (directCost < negRiskCost) ? <span class="code-value">"orderbook"</span> : <span class="code-value">"negrisk"</span></pre>
+                <p style="font-size: 0.8125rem; color: var(--text-muted); margin-top: 0.75rem;">
+                    이 라우팅은 자동으로 이루어집니다 — 사용자는 "YES 매수"만 클릭하면 최적의 실행을 얻습니다.
+                </p>
+            </div>
+
+            <h4>NegRisk의 장점</h4>
+            <div class="grid-2">
+                <div class="card">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;">
+                        <span style="font-size: 1.25rem;">💧</span>
+                        <h4 style="margin: 0;">통합 유동성</h4>
+                    </div>
+                    <p>모든 결과가 NO 토큰 등가성을 통해 유동성을 공유합니다. 48개의 개별 시장으로 유동성이 파편화되는 대신, NegRisk 어댑터는 통합된 유동성 풀을 생성합니다.</p>
+                </div>
+                <div class="card">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;">
+                        <span style="font-size: 1.25rem;">💰</span>
+                        <h4 style="margin: 0;">자본 효율성</h4>
+                    </div>
+                    <p>공유된 담보를 통해 담보 요구량이 낮아집니다. N개의 NO 토큰을 보유하는 데 $(N-1)의 가치만 필요하므로, 마켓 메이커의 자본 배치가 더 효율적입니다.</p>
+                </div>
+                <div class="card">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;">
+                        <span style="font-size: 1.25rem;">⚡</span>
+                        <h4 style="margin: 0;">슬리피지 없는 변환</h4>
+                    </div>
+                    <p>오더북에 의존하지 않고 수학적으로 포지션을 변환합니다. 변환 비율이 결정론적이므로 변환 단계 자체에서는 슬리피지가 없습니다.</p>
+                </div>
+                <div class="card">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;">
+                        <span style="font-size: 1.25rem;">📊</span>
+                        <h4 style="margin: 0;">더 나은 가격 발견</h4>
+                    </div>
+                    <p>차익거래 기회가 모든 결과의 가격을 동기화합니다. YES 가격의 합이 100%에서 벗어나면 차익거래자가 변환을 통해 이익을 얻으며 시장 효율성을 유지합니다.</p>
+                </div>
+                <div class="card">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;">
+                        <span style="font-size: 1.25rem;">📈</span>
+                        <h4 style="margin: 0;">무한한 확장성</h4>
+                    </div>
+                    <p>유동성 파편화 없이 48개 이상의 결과를 지원합니다. Polymarket의 월드컵 시장은 모든 국가가 통합된 유동성에 대해 거래되는 것을 보여줍니다.</p>
+                </div>
+                <div class="card">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;">
+                        <span style="font-size: 1.25rem;">🔓</span>
+                        <h4 style="margin: 0;">재고 고립 없음</h4>
+                    </div>
+                    <p>포지션을 청산하거나 변환할 수 있는 수학적 경로가 항상 존재합니다. 사용자는 비유동성 토큰에 갇히지 않으며 언제든지 다른 결과로 변환할 수 있습니다.</p>
+                </div>
+            </div>
+
+            <div class="box box-success" style="margin-top: 1.5rem;">
+                <span class="box-title">예측 시장에 중요한 이유</span>
+                <p>전통적인 예측 시장은 <strong>유동성 파편화</strong>로 고통받습니다 — 각 결과가 제한된 자본을 두고 경쟁합니다. NegRisk는 NO 토큰이 수학적으로 연결되어 있음을
+                    인식하여 모든
+                    결과 사이에 "유동성 다리"를 놓음으로써 이 문제를 해결합니다.</p>
+                <p style="margin-top: 0.75rem;">이것이 바로 Polymarket이 48개 이상의 국가 결과에 대해 $2M+의 총 유동성을 제공할 수 있는 이유이며, Grouped
+                    Binary
+                    방식은 모든 결과에 대해 깊이를 유지하는 데 어려움을 겪을 것입니다.</p>
+            </div>
+
+            <h4>실전 예시: $10,000 유동성, 10개 국가</h4>
+            <p>트레이더들이 순차적으로 $10씩 매수할 때 어떤 일이 일어나는지 추적해 봅시다.</p>
+
+            <div class="diagram">
+                <div class="diagram-title">초기 설정</div>
+                <pre
+                    style="font-size: 0.85rem; margin: 0; padding: 1rem; background: #1e293b; color: #e2e8f0; border-radius: 6px;">
+10개 국가: 스페인, 프랑스, 브라질, 아르헨티나, 잉글랜드,
+           독일, 이탈리아, 포르투갈, 네덜란드, 벨기에
+
+초기 가격: 각 10¢ YES / 90¢ NO (10% 확률)
+마켓 메이커: 국가당 $1,000 → 각 1,000 (YES+NO) 쌍</pre>
+            </div>
+
+            <h5 style="margin-top: 1.5rem;">Grouped Binary: 10번 거래 후 (주로 스페인)</h5>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>국가</th>
+                            <th>YES 잔량</th>
+                            <th>NO 잔량</th>
+                            <th>상태</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>스페인</strong></td>
+                            <td style="color: var(--danger);">312</td>
+                            <td>1,000</td>
+                            <td><span class="label label-danger">688 NO 고립됨!</span></td>
+                        </tr>
+                        <tr>
+                            <td>프랑스</td>
+                            <td>800</td>
+                            <td>1,000</td>
+                            <td><span class="label label-warning">200 과잉 NO</span></td>
+                        </tr>
+                        <tr>
+                            <td>브라질</td>
+                            <td>900</td>
+                            <td>1,000</td>
+                            <td><span class="label label-warning">100 과잉 NO</span></td>
+                        </tr>
+                        <tr>
+                            <td>기타...</td>
+                            <td>1,000</td>
+                            <td>1,000</td>
+                            <td><span class="label label-success">균형</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="box box-danger" style="margin-top: 1rem;">
+                <span class="box-title">문제: 스페인 유동성 위기</span>
+                <pre
+                    style="font-size: 0.85rem; margin: 0.5rem 0; padding: 1rem; background: #450a0a; color: #fecaca; border-radius: 6px;">
+거래 11: $10 스페인 YES 매수...
+
+스페인 YES 312개만 남음!
+가격 급등: 10¢ → 15¢ → 20¢ (슬리피지)
+$10로 100개 대신 50개만 매수 가능
+
+반면: 688 스페인 NO 토큰은 쓸모없이 방치됨 💀
+마켓 메이커는 NO를 다른 국가로 옮길 수 없음</pre>
+            </div>
+
+            <h5 style="margin-top: 1.5rem;">NegRisk: 마켓 메이커 리밸런싱</h5>
+            <div class="box box-highlight">
+                <span class="box-title">NegRisk 변환 마법</span>
+                <pre
+                    style="font-size: 0.85rem; margin: 0.5rem 0; padding: 1rem; background: #1e1b4b; color: #c7d2fe; border-radius: 6px;">
+각 국가에서 200개의 과잉 NO를 가져옴:
+• 200 스페인 NO + 200 프랑스 NO + 200 브라질 NO + ...
+= 2,000개의 완전한 NO 세트 (각 국가당 하나씩)
+= 10 NO 토큰 × 200 세트 = $1,800 가치 (10 NO = $9)
+
+변환 → $1,800 USDC가 마켓 메이커에게 반환됨!</pre>
+                <p style="margin-top: 0.75rem;">마켓 메이커는 $1,800를 사용하여 500개의 새로운 스페인 (YES+NO) 쌍을 발행 → <strong>스페인 유동성
+                        복구!</strong>
+                </p>
+            </div>
+
+            <div class="grid-2" style="margin-top: 1rem;">
+                <div class="card" style="border-left: 3px solid var(--danger);">
+                    <h4>Grouped Binary 결과</h4>
+                    <ul style="font-size: 0.875rem;">
+                        <li>스페인 YES 잔량: <strong style="color: var(--danger);">312</strong></li>
+                        <li>슬리피지: <strong style="color: var(--danger);">높음</strong></li>
+                        <li>과잉 NO: <strong>고립됨</strong></li>
+                        <li>다음 트레이더 지불: <strong>+50% 더 비쌈</strong></li>
+                    </ul>
+                </div>
+                <div class="card" style="border-left: 3px solid var(--success);">
+                    <h4>NegRisk 결과</h4>
+                    <ul style="font-size: 0.875rem;">
+                        <li>스페인 YES 잔량: <strong style="color: var(--success);">800</strong></li>
+                        <li>슬리피지: <strong style="color: var(--success);">낮음</strong></li>
+                        <li>과잉 NO: <strong>변환됨</strong></li>
+                        <li>다음 트레이더 지불: <strong>정상 가격</strong></li>
+                    </ul>
+                </div>
+            </div>
+
+            <h4 style="margin-top: 2rem;">누가 리밸런싱을 수행하는가?</h4>
+            <p>NegRisk 어댑터는 <strong>비허가형(permissionless)</strong>입니다 — 누구나 변환 함수를 호출할 수 있습니다. 실제로는:</p>
+
+            <div class="grid-2">
+                <div class="card">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;">
+                        <span style="font-size: 1.25rem;">🤖</span>
+                        <h4 style="margin: 0;">차익거래 봇</h4>
+                    </div>
+                    <p style="font-size: 0.875rem;">자동화된 봇이 가격 불일치를 모니터링합니다. YES 가격의 합이 100%가 아닐 때, 변환을 통해 이익을 얻으며 부수적으로
+                        유동성을
+                        리밸런싱합니다.</p>
+                </div>
+                <div class="card">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;">
+                        <span style="font-size: 1.25rem;">🏦</span>
+                        <h4 style="margin: 0;">전문 마켓 메이커</h4>
+                    </div>
+                    <p style="font-size: 0.875rem;">Wintermute, GSR 같은 기업들은 정교한 전략을 실행합니다. 그들은 타이트한 스프레드를 유지하기 위해
+                        NegRisk를 사용하여
+                        재고를 적극적으로 리밸런싱합니다.</p>
+                </div>
+                <div class="card">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;">
+                        <span style="font-size: 1.25rem;">⚙️</span>
+                        <h4 style="margin: 0;">프로토콜 자동화</h4>
+                    </div>
+                    <p style="font-size: 0.875rem;">일부 프로토콜은 재고가 임계값을 초과할 때 자동으로 리밸런싱하는 키퍼(keeper) 봇을 운영하며, 이는 거래 수수료로
+                        충당됩니다.
+                    </p>
+                </div>
+                <div class="card">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;">
+                        <span style="font-size: 1.25rem;">💡</span>
+                        <h4 style="margin: 0;">스마트 트레이더</h4>
+                    </div>
+                    <p style="font-size: 0.875rem;">기회를 포착한 어떤 사용자든 변환을 실행할 수 있습니다. 경제적 인센티브(가격 오류로 인한 이익)는 누군가가 항상 이를
+                        수행하도록
+                        보장합니다.</p>
+                </div>
+            </div>
+
+            <div class="box box-highlight" style="margin-top: 1.5rem;">
+                <span class="box-title">핵심 통찰: 인센티브 정렬</span>
+                <p>단일 주체가 "마켓 메이커"가 될 필요는 없습니다. NegRisk 어댑터는 참여자들이 유동성을 리밸런싱하도록 자연스럽게 유도하는 <strong>경제적 인센티브</strong>를
+                    생성합니다.
+                    차익거래자 수익 → 유동성 개선 → 모두가 승리.</p>
+            </div>
+
+            <h4 style="margin-top: 2rem;">변환은 어떻게 트리거되는가?</h4>
+            <p>NegRisk 컨트랙트는 <strong>수동적(passive)</strong>입니다 — 자동으로 실행되지 않습니다. 외부 행위자가 모니터링하다가 수익성이 있을 때 트리거합니다.</p>
+
+            <div class="diagram">
+                <div class="diagram-title">트리거 흐름: 오프체인 모니터링 → 온체인 실행</div>
+                <div style="display: flex; flex-direction: column; gap: 0.5rem; padding: 1rem;">
+                    <div class="flow-step" style="background: var(--bg-subtle);">1. 오프체인 봇이 API/WebSocket으로 오더북 감시</div>
+                    <div class="flow-arrow">↓</div>
+                    <div class="flow-step" style="background: var(--bg-subtle);">2. 계산: YES 가격 합 = 103% → 수익 기회!</div>
+                    <div class="flow-arrow">↓</div>
+                    <div class="flow-step" style="background: var(--bg-subtle);">3. NegRisk 컨트랙트 호출:
+                        <code>convertPosition()</code>
+                    </div>
+                    <div class="flow-arrow">↓</div>
+                    <div class="flow-step final"
+                        style="background: linear-gradient(135deg, #dcfce7, #bbf7d0); color: #166534;">
+                        4. 봇 수익 + 유동성 리밸런싱 (부수 효과)</div>
+                </div>
+            </div>
+
+            <h5 style="margin-top: 1.5rem;">예시: 차익거래 봇 로직</h5>
+            <pre style="font-size: 0.8rem; background: #1e293b; color: #e2e8f0; padding: 1.25rem; border-radius: 8px;">
+<span class="code-comment">// 오프체인 봇 (24/7 지속 실행)</span>
+<span class="code-keyword">while</span> (true) {
+    <span class="code-comment">// 1. 오더북에서 모든 YES 가격 가져오기</span>
+    <span class="code-keyword">const</span> prices = <span class="code-keyword">await</span> getYesPrices(); <span class="code-comment">// [0.16, 0.14, 0.13, ...]</span>
+    <span class="code-keyword">const</span> sum = prices.reduce((a, b) => a + b); <span class="code-comment">// 1.03 (103%)</span>
+
+    <span class="code-comment">// 2. 가스비 제외 후 수익성 확인</span>
+    <span class="code-keyword">const</span> profit = sum - <span class="code-value">1.0</span>;  <span class="code-comment">// 0.03 (3%)</span>
+    <span class="code-keyword">const</span> gasCost = <span class="code-value">0.005</span>;     <span class="code-comment">// ~$5 가스비</span>
+
+    <span class="code-keyword">if</span> (profit > gasCost) {
+        <span class="code-comment">// 3. 온체인 변환 실행</span>
+        <span class="code-keyword">await</span> negRiskAdapter.convertPosition(...);
+        console.log(<span class="code-value">"수익 포착!"</span>);
+    }
+
+    <span class="code-keyword">await</span> sleep(<span class="code-value">100</span>); <span class="code-comment">// 100ms마다 확인</span>
+}</pre>
+
+            <h5 style="margin-top: 1.5rem;">트리거 메커니즘 비교</h5>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>행위자</th>
+                            <th>모니터링 방법</th>
+                            <th>트리거 시점</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>차익거래 봇</strong></td>
+                            <td>WebSocket 가격 피드 24/7</td>
+                            <td>YES 합 ≠ 100% (즉시, ~100ms)</td>
+                        </tr>
+                        <tr>
+                            <td><strong>마켓 메이커</strong></td>
+                            <td>내부 재고 추적</td>
+                            <td>재고 불균형 > 임계값</td>
+                        </tr>
+                        <tr>
+                            <td><strong>체인링크 자동화</strong></td>
+                            <td>온체인 <code>checkUpkeep()</code></td>
+                            <td>설정된 조건 충족 시</td>
+                        </tr>
+                        <tr>
+                            <td><strong>MEV 서처(Searchers)</strong></td>
+                            <td>멤풀(Mempool) 모니터링</td>
+                            <td>프론트러닝할 수익성 있는 트랜잭션 발견 시</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="box box-success" style="margin-top: 1.5rem;">
+                <span class="box-title">자급자족 시스템</span>
+                <p>"언제"는 프로토콜이 아닌 <strong>수익</strong>에 의해 결정됩니다:</p>
+                <ul style="margin-top: 0.5rem;">
+                    <li><strong>수익이 존재?</strong> → 누군가 밀리초 내에 트리거</li>
+                    <li><strong>수익 없음?</strong> → 아무도 트리거 안 함 (리밸런싱 불필요)</li>
+                </ul>
+                <p style="margin-top: 0.75rem;">이것이 시스템이 자급자족하는 이유입니다 — 시스템은 언제인지 알 필요가 없습니다. 경제적 인센티브가 자동으로 발생하도록
+                    보장합니다.</p>
+            </div>
+        </section>
+
+        <!-- Section 1.6: NegRisk Architecture -->
+        <section id="negrisk-arch">
+            <h3>1.6 NegRisk 아키텍처</h3>
+
+            <div class="box box-highlight">
+                <span class="box-title">오픈 소스 레퍼런스</span>
+                <p>Polymarket의 NegRisk 구현은 오픈 소스이며 ChainSecurity와 OpenZeppelin의 감사를 받았습니다.</p>
+                <p style="margin-top: 0.75rem; font-size: 0.8125rem;">
+                    <a href="https://github.com/Polymarket/neg-risk-ctf-adapter" target="_blank"
+                        style="color: var(--accent);">GitHub: Polymarket/neg-risk-ctf-adapter →</a>
+                </p>
+                <p style="font-size: 0.8125rem; color: var(--text-muted); margin-top: 0.5rem;">
+                    포함: NegRiskAdapter, NegRiskOperator, NegRiskCtfExchange, WrappedCollateral, Vault, FeeModule
+                </p>
+            </div>
+
+            <h4>아키텍처 레이어</h4>
+            <div class="arch-layer">
+                <div class="arch-layer-title">사용자 인터페이스</div>
+                <div class="arch-layer-content">
+                    <div class="func">"내 스페인 YES를 프랑스 YES로 변환"</div>
+                </div>
+            </div>
+
+            <div class="arch-arrow">↓</div>
+
+            <div class="arch-layer">
+                <div class="arch-layer-title">NegRisk 어댑터</div>
+                <div class="arch-layer-content">
+                    <div class="func">splitPosition()</div>
+                    <div class="func">mergePositions()</div>
+                    <div class="func">convertPosition()</div>
+                </div>
+                <p style="text-align: center; margin-top: 0.75rem; font-size: 0.9rem; color: var(--text-muted);">
+                    핵심: USDC ↔ NO 토큰 ↔ YES 토큰 변환</p>
+            </div>
+
+            <div class="arch-arrow">↓</div>
+
+            <div class="arch-layer">
+                <div class="arch-layer-title">Grouped Binary 시장</div>
+                <p style="text-align: center; font-size: 0.9rem; color: var(--text-muted);">
+                    스페인 YES/NO | 프랑스 YES/NO | 브라질 YES/NO | ...<br>
+                    모두 <code>negRiskMarketId</code>로 연결됨
+                </p>
+            </div>
+
+            <div class="arch-arrow">↓</div>
+
+            <div class="arch-layer">
+                <div class="arch-layer-title">Conditional Tokens Framework (CTF)</div>
+                <p style="text-align: center; font-size: 0.9rem; color: var(--text-muted);">모든 토큰 작업의 기본 레이어</p>
+            </div>
+
+            <h4>주요 컨트랙트</h4>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>컨트랙트</th>
+                            <th>목적</th>
+                            <th>Nostra 보유?</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>NegRiskAdapter</strong></td>
+                            <td>핵심 변환 로직 (NO → YES)</td>
+                            <td><span class="label label-danger">아니오</span></td>
+                        </tr>
+                        <tr>
+                            <td><strong>NegRiskOperator</strong></td>
+                            <td>관리자 기능, 오라클 통합</td>
+                            <td><span class="label label-danger">아니오</span></td>
+                        </tr>
+                        <tr>
+                            <td><strong>WrappedCollateral</strong></td>
+                            <td>내부 회계용 Wrapped USDC</td>
+                            <td><span class="label label-danger">아니오</span></td>
+                        </tr>
+                        <tr>
+                            <td>ConditionalTokens (CTF)</td>
+                            <td>기본 토큰 프레임워크</td>
+                            <td><span class="label label-success">예</span></td>
+                        </tr>
+                        <tr>
+                            <td>MarketFactory</td>
+                            <td>바이너리 시장 생성</td>
+                            <td><span class="label label-success">예</span></td>
+                        </tr>
+                        <tr>
+                            <td>CTFExchange</td>
+                            <td>오더북 트레이딩</td>
+                            <td><span class="label label-success">예</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Section 1.7: Implementation Options -->
+        <section id="implementation-options">
+            <h3>1.7 구현 옵션</h3>
+
+            <h4>Nostra가 NegRisk를 구현하기 위해 필요한 것</h4>
+            <ul class="impl-list">
+                <li>
+                    <span class="impl-number">1</span>
+                    <div class="impl-content">
+                        <strong>WrappedCollateral.sol</strong>
+                        <small>내부 회계를 위한 USDC의 ERC20 래퍼</small>
+                    </div>
+                    <span class="difficulty difficulty-easy">쉬움</span>
+                </li>
+                <li>
+                    <span class="impl-number">2</span>
+                    <div class="impl-content">
+                        <strong>NegRiskAdapter.sol</strong>
+                        <small>핵심 변환 로직: splitPosition, mergePositions, convertPosition</small>
+                    </div>
+                    <span class="difficulty difficulty-hard">어려움</span>
+                </li>
+                <li>
+                    <span class="impl-number">3</span>
+                    <div class="impl-content">
+                        <strong>NegRiskOperator.sol</strong>
+                        <small>시장 그룹 관리, 바이너리 시장 연결</small>
+                    </div>
+                    <span class="difficulty difficulty-medium">중간</span>
+                </li>
+                <li>
+                    <span class="impl-number">4</span>
+                    <div class="impl-content">
+                        <strong>데이터베이스: negRiskMarketId 필드</strong>
+                        <small>같은 그룹의 시장 연결</small>
+                    </div>
+                    <span class="difficulty difficulty-easy">쉬움</span>
+                </li>
+                <li>
+                    <span class="impl-number">5</span>
+                    <div class="impl-content">
+                        <strong>API: /api/negrisk/convert 엔드포인트</strong>
+                        <small>프론트엔드의 변환 요청 처리</small>
+                    </div>
+                    <span class="difficulty difficulty-medium">중간</span>
+                </li>
+                <li>
+                    <span class="impl-number">6</span>
+                    <div class="impl-content">
+                        <strong>프론트엔드: 포지션 변환 UI</strong>
+                        <small>같은 그룹 내 결과 간 변환 버튼</small>
+                    </div>
+                    <span class="difficulty difficulty-medium">중간</span>
+                </li>
+            </ul>
+
+            <h4>예상 소요 시간</h4>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>컴포넌트</th>
+                            <th>시간</th>
+                            <th>복잡도</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>스마트 컨트랙트 (1-3)</td>
+                            <td>2-3주</td>
+                            <td>높음 (보안 중요)</td>
+                        </tr>
+                        <tr>
+                            <td>백엔드 API (4-5)</td>
+                            <td>3-5일</td>
+                            <td>중간</td>
+                        </tr>
+                        <tr>
+                            <td>프론트엔드 UI (6)</td>
+                            <td>3-5일</td>
+                            <td>중간</td>
+                        </tr>
+                        <tr>
+                            <td>테스트 및 감사</td>
+                            <td>2-4주</td>
+                            <td>매우 중요</td>
+                        </tr>
+                        <tr>
+                            <td><strong>총계</strong></td>
+                            <td><strong>6-10주</strong></td>
+                            <td></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="box box-warning">
+                <span class="box-title">대안: 차익거래 봇</span>
+                <p>NegRisk를 구현하기 전에, 정말 필요한지 고려해보세요. 현재의 차익거래 봇으로도 훨씬 간단한 구현으로 경제적 포지션 균형을 맞출 수 있습니다.</p>
+                <p><strong>언제 NegRisk를 구현해야 할까요?</strong></p>
+                <ul>
+                    <li>변환 수요가 복잡성을 정당화할 만큼 거래량이 많을 때</li>
+                    <li>재고 고립에 대한 사용자 불만이 있을 때</li>
+                    <li>Polymarket 수준의 기능에 대한 경쟁 압력이 있을 때</li>
+                </ul>
+            </div>
+        </section><!-- PART 2: CHAINLINK INTEGRATION -->
+        <div class="part-divider">
+            <h2>2부: 체인링크 오라클 통합</h2>
+            <span class="part-subtitle">탈중앙화된 시장 해결</span>
+        </div>
+
+        <!-- Section 2.1: Why Chainlink -->
+        <section id="why-chainlink">
+            <h3>2.1 시장 해결을 위한 체인링크</h3>
+
+            <h4>현재 상태: 수동 해결</h4>
+            <div class="box box-danger">
+                <span class="box-title">수동 해결의 문제점</span>
+                <ul>
+                    <li><strong>중앙화된 신뢰:</strong> 관리자가 결과를 조작할 수 있음</li>
+                    <li><strong>검증 불가능한 출처:</strong> 사용자는 플랫폼을 신뢰해야 함</li>
+                    <li><strong>인적 오류 위험:</strong> 수동 프로세스는 실수하기 쉬움</li>
+                </ul>
+            </div>
+
+            <h4>체인링크 솔루션</h4>
+            <div class="box box-success">
+                <span class="box-title">체인링크 해결의 이점</span>
+                <ul>
+                    <li><strong>탈중앙화 오라클 네트워크:</strong> 다수의 노드가 데이터 검증</li>
+                    <li><strong>검증 가능한 데이터 소스:</strong> 진본성에 대한 암호학적 증명</li>
+                    <li><strong>무신뢰 자동화:</strong> 사람의 개입 불필요</li>
+                    <li><strong>업계 표준:</strong> 입증된 보안 기록</li>
+                </ul>
+            </div>
+
+            <div style="margin: 2rem 0; text-align: center;">
+                <img src="images/chainlink-architecture.png" alt="Chainlink Architecture"
+                    style="max-width: 100%; border-radius: 12px; border: 1px solid var(--border); box-shadow: var(--shadow-md);">
+                <p style="font-size: 0.8125rem; color: var(--text-muted); margin-top: 0.5rem;">체인링크 탈중앙화 오라클 네트워크 (DON)
+                    아키텍처</p>
+            </div>
+        </section>
+
+        <!-- Section 2.2: Handling Long-tail Markets -->
+        <section id="long-tail-markets">
+            <h3>2.2 롱테일 및 비정형 시장 처리</h3>
+            <p><em>"지역 '우리들의 발라드' 노래자랑 우승자는 누구인가?"</em>와 같은 틈새 시장을 해결하고 싶다면 어떻게 해야 할까요?</p>
+
+            <h4>시나리오 A: 온라인에 데이터가 존재함</h4>
+            <div class="box box-highlight">
+                <span class="box-title">솔루션: Chainlink Functions</span>
+                <p>결과가 공식 웹사이트, 뉴스 기사 또는 위키피디아에 게시된 경우:</p>
+                <ol>
+                    <li><strong>개발자</strong>가 우승자 이름을 스크래핑하는 자바스크립트 스크립트를 작성합니다 (예: <code>div.winner</code>에서).
+                    </li>
+                    <li><strong>체인링크 노드 (DON)</strong>가 이 스크립트를 실행하고 데이터를 가져옵니다.</li>
+                    <li><strong>합의</strong>에 도달하면 결과("김철수")가 온체인으로 전달됩니다.
+                    </li>
+                </ol>
+                <p style="color: #166534; font-weight: 500; margin-top: 0.5rem;">✓ 최적: 검증 가능한 디지털 데이터 소스.</p>
+            </div>
+
+            <h4>시나리오 B: 디지털 발자국 없음</h4>
+            <div class="box box-danger">
+                <span class="box-title">한계점</span>
+                <p>대회가 너무 작아서 뉴스에도 안 나오고 웹사이트도 없다면, <strong>체인링크는 해결할 수 없습니다</strong>. 체인링크는 현실 세계의 데이터를 배달하는 서비스이지, 진실을
+                    창조하는
+                    존재가 아닙니다.</p>
+            </div>
+
+            <h4>대안: UMA (낙관적 오라클)</h4>
+            <p>API가 없는 비정형 롱테일 시장의 경우, <strong>UMA</strong>는 사람이 검증하는 솔루션을 제공합니다 (Polymarket 사용).</p>
+
+            <div class="grid-2">
+                <div class="card">
+                    <h4>UMA 작동 방식</h4>
+                    <ol style="font-size: 0.875rem;">
+                        <li><strong>제안:</strong> 누구나 "김철수가 우승했다"고 주장합니다.</li>
+                        <li><strong>이의 제기 기간:</strong> 분쟁을 위한 창(예: 2시간)이 열립니다.</li>
+                        <li><strong>확정:</strong> 이의가 없으면 답변이 수락됩니다.</li>
+                        <li><strong>분쟁:</strong> 이의가 제기되면 토큰 보유자가 투표하여 진실을 결정합니다.</li>
+                    </ol>
+                </div>
+                <div class="card">
+                    <h4>장단점</h4>
+                    <ul style="font-size: 0.875rem;">
+                        <li><span style="color: #166534;">✓</span> 사람이 검증할 수 있는 모든 질문에 작동.</li>
+                        <li><span style="color: #166534;">✓</span> API 불필요.</li>
+                        <li><span style="color: #991b1b;">✗</span> 느림 (이의 제기 기간 필요).</li>
+                        <li><span style="color: #991b1b;">✗</span> 더 복잡한 게임 이론.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="box box-warning">
+                <span class="box-title">요약: 올바른 오라클 선택</span>
+                <ul>
+                    <li><strong>웹사이트/API 존재</strong> → <span class="label label-primary">Chainlink
+                            Functions</span> (가장 깔끔하고 빠름)</li>
+                    <li><strong>디지털 정보 없음</strong> → <span class="label label-warning">UMA (낙관적)</span> 또는
+                        <span class="label label-danger">수동 관리자</span> (가장 저렴함)
+                    </li>
+                </ul>
+            </div>
+        </section>
+
+        <!-- Section 2.3: Chainlink Products -->
+        <section id="chainlink-products">
+            <h3>2.3 체인링크 제품 개요</h3>
+
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>제품</th>
+                            <th>사용 사례</th>
+                            <th>적합한 대상</th>
+                            <th>비용</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Data Feeds</strong></td>
+                            <td>가격 데이터 (BTC, ETH, 주식)</td>
+                            <td>"BTC가 $100K를 넘을까?"</td>
+                            <td><span class="label label-success">무료</span></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Functions</strong></td>
+                            <td>커스텀 API 호출</td>
+                            <td>스포츠 점수, 선거 결과</td>
+                            <td>요청당 ~0.25 LINK</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Automation</strong></td>
+                            <td>예약/조건부 실행</td>
+                            <td>마감 시 자동 해결</td>
+                            <td>실행당 ~0.1 LINK</td>
+                        </tr>
+                        <tr>
+                            <td><strong>VRF</strong></td>
+                            <td>검증 가능한 무작위성</td>
+                            <td>복권 스타일 시장</td>
+                            <td>요청당 ~0.25 LINK</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="grid-3">
+                <div class="card">
+                    <h4>Data Feeds</h4>
+                    <p style="font-size: 0.875rem;">암호화폐, 원자재, 외환을 위한 실시간 위변조 방지 가격 데이터.</p>
+                    <pre style="font-size: 0.75rem;">노드 → 집계 → 온체인
+       ↓
+컨트랙트가 가격 읽기
+       ↓
+비교 → 해결</pre>
+                </div>
+                <div class="card">
+                    <h4>Functions</h4>
+                    <p style="font-size: 0.875rem;">모든 API에서 데이터를 가져오기 위해 커스텀 자바스크립트 실행.</p>
+                    <pre style="font-size: 0.75rem;">컨트랙트 → 요청 → DON
+       ↓
+자바스크립트 실행
+       ↓
+API 조회 → 반환</pre>
+                </div>
+                <div class="card">
+                    <h4>Automation</h4>
+                    <p style="font-size: 0.875rem;">일정이나 조건에 따라 컨트랙트 함수 자동 호출.</p>
+                    <pre style="font-size: 0.75rem;">Upkeep 등록 → 모니터링
+       ↓
+조건 충족?
+       ↓
+performUpkeep()</pre>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 2.4: Resolution Architecture -->
+        <section id="resolution-arch">
+            <h3>2.4 해결 아키텍처</h3>
+
+            <h4>현재 vs 제안된 흐름</h4>
+            <div class="grid-2">
+                <div class="card">
+                    <h4>현재: 관리자 해결</h4>
+                    <div class="flow-step">관리자 UI</div>
+                    <div class="flow-arrow">↓</div>
+                    <div class="flow-step">POST /api/admin/resolve</div>
+                    <div class="flow-arrow">↓</div>
+                    <div class="flow-step">서버 지갑 서명</div>
+                    <div class="flow-arrow">↓</div>
+                    <div class="flow-step final">reportPayouts() → 해결됨</div>
+                    <p style="font-size: 0.8125rem; margin-top: 1rem; color: #991b1b;"><strong>관리자가 수동으로 승자 결정</strong>
+                    </p>
+                </div>
+                <div class="card">
+                    <h4>제안: 체인링크 해결</h4>
+                    <div class="flow-step">시장 마감</div>
+                    <div class="flow-arrow">↓</div>
+                    <div class="flow-step">Chainlink Automation 트리거</div>
+                    <div class="flow-arrow">↓</div>
+                    <div class="flow-step">컨트랙트가 Price Feed 읽기</div>
+                    <div class="flow-arrow">↓</div>
+                    <div class="flow-step final">reportPayouts() → 해결됨</div>
+                    <p style="font-size: 0.8125rem; margin-top: 1rem; color: #166534;"><strong>데이터 기반 자동 해결</strong></p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 2.5: Smart Contract Integration -->
+        <section id="smart-contracts">
+            <h3>2.5 스마트 컨트랙트 통합</h3>
+
+            <h4>Price Feed Resolver 예시</h4>
+            <pre>
+<span class="code-comment">// SPDX-License-Identifier: MIT</span>
+<span class="code-keyword">pragma solidity</span> ^0.8.19;
+
+<span class="code-keyword">import</span> "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
+
+<span class="code-keyword">contract</span> PriceFeedResolver {
+    AggregatorV3Interface internal priceFeed;
+    IConditionalTokens public ctf;
+
+    <span class="code-keyword">struct</span> PriceMarket {
+        bytes32 questionId;
+        uint256 threshold;      <span class="code-comment">// 8자리 소수점 가격 임계값</span>
+        bool resolveAbove;      <span class="code-comment">// true = 가격 > 임계값이면 YES 승리</span>
+        uint256 deadline;
+        bool resolved;
+    }
+
+    mapping(bytes32 => PriceMarket) public markets;
+
+    <span class="code-keyword">function</span> resolveMarket(bytes32 questionId) <span class="code-keyword">external</span> {
+        PriceMarket storage market = markets[questionId];
+        <span class="code-keyword">require</span>(!market.resolved, <span class="code-value">"이미 해결됨"</span>);
+        <span class="code-keyword">require</span>(block.timestamp >= market.deadline, <span class="code-value">"너무 이름"</span>);
+
+        <span class="code-comment">// 체인링크에서 최신 가격 가져오기</span>
+        (, int256 price, , , ) = priceFeed.latestRoundData();
+
+        <span class="code-comment">// 승자 결정</span>
+        bool yesWins = market.resolveAbove
+            ? price > int256(market.threshold)
+            : price < int256(market.threshold);
+
+        <span class="code-comment">// CTF에 배당 보고</span>
+        uint256[] memory payouts = new uint256[](2);
+        payouts[0] = yesWins ? 1 : 0;  <span class="code-comment">// YES 결과</span>
+        payouts[1] = yesWins ? 0 : 1;  <span class="code-comment">// NO 결과</span>
+
+        ctf.reportPayouts(questionId, payouts);
+        market.resolved = <span class="code-keyword">true</span>;
+    }
+}
+            </pre>
+
+            <h4>Chainlink Functions 예시 (JavaScript)</h4>
+            <pre>
+<span class="code-comment">// 이 코드는 Chainlink Functions DON에서 실행됩니다</span>
+<span class="code-keyword">const</span> apiEndpoint = args[0];  <span class="code-comment">// 예: "https://api.sportsdata.io/..."</span>
+<span class="code-keyword">const</span> jsonPath = args[1];     <span class="code-comment">// 예: "Games[0].Winner"</span>
+
+<span class="code-keyword">const</span> response = <span class="code-keyword">await</span> Functions.makeHttpRequest({
+  url: apiEndpoint,
+  headers: { <span class="code-value">"Ocp-Apim-Subscription-Key"</span>: secrets.apiKey }
+});
+
+<span class="code-keyword">if</span> (response.error) {
+  <span class="code-keyword">throw</span> Error(<span class="code-value">"API 요청 실패"</span>);
+}
+
+<span class="code-comment">// JSON 경로 탐색 및 결과 반환</span>
+<span class="code-keyword">const</span> homeTeamWins = result === <span class="code-value">"HomeTeam"</span> ? 1 : 0;
+<span class="code-keyword">return</span> Functions.encodeUint256(homeTeamWins);
+            </pre>
+
+            <h4>네트워크 주소</h4>
+            <div class="grid-2">
+                <div class="card">
+                    <h4>BSC Testnet</h4>
+                    <pre style="font-size: 0.75rem;">LINK: 0x84b9B910527Ad5C03A9Ca831909E21e236EA7b06
+BTC/USD: 0x5741306c21795FdCBb9b265Ea0255F499DFe515C
+ETH/USD: 0x143db3CEEfbdfe5631aDD3E50f7614B6ba708BA7
+BNB/USD: 0x2514895c72f50D8bd4B4F9b1110F0D6bD2c97526</pre>
+                </div>
+                <div class="card">
+                    <h4>Polygon Amoy</h4>
+                    <pre style="font-size: 0.75rem;">Functions Router: 0xC22a79eBA640940ABB6dF0f7982cc119578E11De
+BTC/USD: 0xe7656e23fE8077D438aEfbec2fAbDf2D8e070C4f
+ETH/USD: 0xF0d50568e3A7e8259E16663972b11910F89BD8e7</pre>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 2.6: Cost & Security -->
+        <section id="cost-security">
+            <h3>2.6 비용 및 보안 고려사항</h3>
+
+            <h4>월간 비용 추정 (시장 100개 기준)</h4>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>컴포넌트</th>
+                            <th>사용당 비용</th>
+                            <th>월간 (100개 시장)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Data Feeds (읽기)</td>
+                            <td><span class="label label-success">무료</span></td>
+                            <td>$0</td>
+                        </tr>
+                        <tr>
+                            <td>Functions 요청</td>
+                            <td>~0.25 LINK</td>
+                            <td>25 LINK (~$250)</td>
+                        </tr>
+                        <tr>
+                            <td>Automation 확인</td>
+                            <td>~0.01 LINK</td>
+                            <td>30 LINK (~$300)</td>
+                        </tr>
+                        <tr>
+                            <td>Automation 실행</td>
+                            <td>~0.1 LINK</td>
+                            <td>10 LINK (~$100)</td>
+                        </tr>
+                        <tr>
+                            <td><strong>합계</strong></td>
+                            <td></td>
+                            <td><strong>~65 LINK (~$650)</strong></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h4>보안 고려사항</h4>
+            <div class="grid-2">
+                <div class="card">
+                    <h4>신뢰 가정</h4>
+                    <ul style="font-size: 0.875rem;">
+                        <li><strong>Data Feeds:</strong> 높은 신뢰 (탈중앙화 노드)</li>
+                        <li><strong>Functions:</strong> 중간 (API에 의존)</li>
+                        <li><strong>API 소스:</strong> 제공자에 따라 다름</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <h4>필수 확인 사항</h4>
+                    <ul style="font-size: 0.875rem;">
+                        <li>체인링크 응답 데이터 검증</li>
+                        <li>Functions 오류 우아하게 처리</li>
+                        <li>수동 해결로의 폴백(fallback) 구현</li>
+                        <li>적절한 가스 한도 설정</li>
+                        <li>구독 잔액 모니터링</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 2.7: Implementation Roadmap -->
+        <section id="roadmap">
+            <h3>2.7 구현 로드맵</h3>
+
+            <div class="grid-2">
+                <div class="card">
+                    <h4>1단계: Price Feed 시장 (1-2주차)</h4>
+                    <ul style="font-size: 0.875rem;">
+                        <li>PriceFeedResolver 컨트랙트 배포</li>
+                        <li>BTC/USD, ETH/USD 피드로 테스트</li>
+                        <li>"BTC가 $X를 넘을까?" 시장 생성</li>
+                        <li>프론트엔드 해결 페이지 업데이트</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <h4>2단계: 자동화 (3주차)</h4>
+                    <ul style="font-size: 0.875rem;">
+                        <li>리졸버에 AutomationCompatible 추가</li>
+                        <li>체인링크에 Upkeep 등록</li>
+                        <li>마감 시 자동 해결 테스트</li>
+                        <li>가스 설정 모니터링 및 조정</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <h4>3단계: Functions (4-5주차)</h4>
+                    <ul style="font-size: 0.875rem;">
+                        <li>Functions 구독 설정</li>
+                        <li>FunctionsResolver 컨트랙트 배포</li>
+                        <li>스포츠 API용 자바스크립트 작성</li>
+                        <li>엣지 케이스 처리 (API 다운 등)</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <h4>4단계: 프로덕션 (6주차)</h4>
+                    <ul style="font-size: 0.875rem;">
+                        <li>보안 감사</li>
+                        <li>메인넷 배포</li>
+                        <li>모니터링 대시보드</li>
+                        <li>관리자 폴백 절차</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="box box-highlight" style="margin-top: 2rem;">
+                <span class="box-title">요약</span>
+                <div class="table-wrapper" style="margin-top: 1rem;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>시장 유형</th>
+                                <th>체인링크 제품</th>
+                                <th>비용</th>
+                                <th>복잡도</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>가격 기반 ("BTC > $X?")</td>
+                                <td>Data Feeds</td>
+                                <td><span class="label label-success">무료</span></td>
+                                <td>낮음</td>
+                            </tr>
+                            <tr>
+                                <td>시간 기반 자동 해결</td>
+                                <td>Automation</td>
+                                <td>~$1/월</td>
+                                <td>중간</td>
+                            </tr>
+                            <tr>
+                                <td>이벤트 기반 (스포츠, 선거)</td>
+                                <td>Functions</td>
+                                <td>~$2.50/요청</td>
+                                <td>높음</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <p style="margin-top: 1rem;"><strong>권장사항:</strong> Price Feed 시장(무료, 간단함)으로 시작하고, 자동 해결을 위해 Automation을
+                    추가한 다음,
+                    필요에 따라 Functions로 확장하세요.</p>
+            </div>
+        </section>
+
+        <footer>
+            <p>Nostra 기술 백서 | 버전 1.0 | 2025년 12월</p>
+        </footer>
+    </div>
+</body>
+
+</html>
