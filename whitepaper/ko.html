@@ -46,7 +46,7 @@
                     <ul>
                         <li><a href="#model-comparison">2.1 모델 비교 개요</a></li>
                         <li><a href="#grouped-binary">2.2 Grouped Binary 모델 (Nostra)</a></li>
-                        <li><a href="#ctf-multi">2.3 CTF 다중 결과 모델</a></li>
+                        <li><a href="#liquidity-problem">2.3 Nostra의 유동성 문제 상황</a></li>
                         <li><a href="#negrisk">2.4 NegRisk 어댑터 (Polymarket)</a></li>
                         <li><a href="#negrisk-conversion">2.5 NegRisk 변환 메커니즘</a></li>
                         <li><a href="#negrisk-arch">2.6 NegRisk 아키텍처</a></li>
@@ -870,13 +870,16 @@ LP 수익률:
 
         <!-- PART 2: MARKET MODELS -->
         <div class="part-divider">
-            <h2>2부: 시장 모델</h2>
-            <span class="part-subtitle">CTF 다중 결과 vs NegRisk 어댑터</span>
+            <h2>2부: 고급 시장 모델</h2>
+            <span class="part-subtitle">Nostra Grouped Binary vs Polymarket NegRisk</span>
         </div>
 
         <!-- Section 2.1: Model Comparison -->
         <section id="model-comparison" class="part-2-section">
-            <h3><span class="section-num part-2">2.1</span>모델 비교 개요</h3>
+            <h3><span class="section-num part-2">2.1</span>시장 모델 비교 개요</h3>
+            <p>다중 결과 예측 시장을 위한 두 가지 주요 시장 모델 아키텍처를 이해합니다:
+               Nostra의 현재 Grouped Binary 방식 vs Polymarket의 NegRisk 어댑터 솔루션.
+            </p>
 
             <div class="table-wrapper">
                 <table>
@@ -884,151 +887,363 @@ LP 수익률:
                         <tr>
                             <th>특징</th>
                             <th>Grouped Binary (Nostra)</th>
-                            <th>CTF 다중 결과</th>
-                            <th>NegRisk (Polymarket)</th>
+                            <th>Grouped Binary + NegRisk (Polymarket)</th>
                         </tr>
                     </thead>
                     <tbody>
                         <tr>
-                            <td><strong>구조</strong></td>
-                            <td>독립적인 바이너리 시장들</td>
-                            <td>상호 배타적인 결과 세트</td>
-                            <td>CTF 위에 변환 레이어 추가</td>
+                            <td><strong>초기 확률</strong></td>
+                            <td>유연함 (50% 또는 100/N%)</td>
+                            <td>유연함 (시장 결정)</td>
                         </tr>
                         <tr>
-                            <td><strong>가격 합계</strong></td>
-                            <td>제한 없음 (예: 250%)</td>
-                            <td>항상 100% (또는 1.0)</td>
-                            <td>항상 100% (차익거래 통해)</td>
+                            <td><strong>YES 가격 합계</strong></td>
+                            <td><span class="label label-danger">유연함 (연결 없음)</span></td>
+                            <td><span class="label label-success">~100% (차익거래로 강제)</span></td>
                         </tr>
                         <tr>
-                            <td><strong>유동성 효율성</strong></td>
-                            <td><span class="label label-danger">낮음</span> (파편화됨)</td>
-                            <td><span class="label label-warning">중간</span> (병합 가능)</td>
-                            <td><span class="label label-success">높음</span> (단일 유동성 풀)</td>
+                            <td><strong>시장 연결</strong></td>
+                            <td>독립적 (연결 없음)</td>
+                            <td>어댑터 레이어 (NegRisk)</td>
                         </tr>
                         <tr>
-                            <td><strong>복잡도</strong></td>
-                            <td><span class="label label-success">낮음</span></td>
-                            <td><span class="label label-warning">중간</span></td>
-                            <td><span class="label label-danger">매우 높음</span></td>
+                            <td><strong>재고 고립</strong></td>
+                            <td><span class="label label-danger">있음 (심각한 문제)</span></td>
+                            <td><span class="label label-success">없음 (전환 가능)</span></td>
                         </tr>
                         <tr>
-                            <td><strong>사용자 경험</strong></td>
-                            <td>직관적 (YES/NO)</td>
-                            <td>약간 복잡함</td>
-                            <td>최상 (주식 거래와 유사)</td>
+                            <td><strong>conditionId</strong></td>
+                            <td>다수 (결과당 하나)</td>
+                            <td>다수 + negRiskMarketId</td>
+                        </tr>
+                        <tr>
+                            <td><strong>포지션 전환</strong></td>
+                            <td><span class="label label-danger">불가능</span></td>
+                            <td><span class="label label-success">어댑터로 가능</span></td>
+                        </tr>
+                        <tr>
+                            <td><strong>유동성 파편화</strong></td>
+                            <td><span class="label label-danger">심각 (N개 시장)</span></td>
+                            <td><span class="label label-success">통합</span></td>
+                        </tr>
+                        <tr>
+                            <td><strong>구현 복잡도</strong></td>
+                            <td><span class="label label-success">단순</span></td>
+                            <td><span class="label label-warning">6-10주</span></td>
                         </tr>
                     </tbody>
                 </table>
+            </div>
+
+            <div class="box box-highlight">
+                <span class="box-title">핵심 요점</span>
+                <ul>
+                    <li><strong>Nostra 현재:</strong> Grouped Binary - 단순한 구현이지만 심각한 유동성 파편화와 재고 고립 문제</li>
+                    <li><strong>Polymarket:</strong> Grouped Binary + NegRisk - 동일한 기본 구조이지만, 어댑터 레이어로 재고와 유동성 문제 해결</li>
+                    <li><strong>핵심 차이점:</strong> NegRisk 어댑터는 NO 토큰 동등성을 가능하게 하여, 독립적인 시장들을 통합 유동성 시스템으로 변환</li>
+                </ul>
             </div>
         </section>
 
         <!-- Section 2.2: Grouped Binary -->
         <section id="grouped-binary" class="part-2-section">
             <h3><span class="section-num part-2">2.2</span>Grouped Binary 모델 (Nostra)</h3>
-            <p>현재 Nostra가 사용하는 모델입니다. 각 선택지(예: "한국 우승")는 독립적인 YES/NO 시장입니다.</p>
+            <p>Grouped Binary 모델은 Nostra의 현재 구현입니다. 다중 결과 질문의 각 결과는
+                독립적인 바이너리 시장으로 취급되며 자체 YES/NO 토큰을 가집니다.</p>
 
-            <div class="box box-warning">
-                <span class="box-title">주요 문제점: 재고 고립 (Stuck Inventory)</span>
-                <p>앞서 1.4절에서 설명한 바와 같이, 우승후보의 NO 토큰이 팔리지 않아 LP가 손실을 입는 구조적 문제가 있습니다.</p>
+            <h4>작동 방식</h4>
+            <div class="diagram">
+                <div class="diagram-title">Grouped Binary 아키텍처</div>
+                <p style="text-align: center; margin-bottom: 1rem; font-size: 0.875rem; color: var(--text-muted);">각
+                    결과 = 별도의 <code>conditionId</code>를 가진 독립적인 바이너리 시장</p>
+                <div class="diagram-content">
+                    <div class="token"><span class="token-slot">시장 1</span><br><strong>Spain</strong><br>YES / NO
+                    </div>
+                    <div class="token"><span class="token-slot">시장 2</span><br><strong>France</strong><br>YES / NO
+                    </div>
+                    <div class="token"><span class="token-slot">시장 3</span><br><strong>Brazil</strong><br>YES / NO
+                    </div>
+                    <div class="token"><span class="token-slot">시장 4</span><br><strong>Argentina</strong><br>YES /
+                        NO</div>
+                    <div class="token"><span class="token-slot">시장 5</span><br><strong>England</strong><br>YES / NO
+                    </div>
+                </div>
+            </div>
+
+            <h4>주요 특성</h4>
+            <div class="grid-2">
+                <div class="card">
+                    <h4>장점</h4>
+                    <ul>
+                        <li><strong>단순한 구현:</strong> 각 시장이 독립적이어서 생성과 관리가 쉬움</li>
+                        <li><strong>친숙한 UX:</strong> 표준 YES/NO 베팅 인터페이스</li>
+                        <li><strong>유연한 가격 설정:</strong> 초기 가격에 대한 기계적 제약 없음</li>
+                        <li><strong>간단한 해결:</strong> 한 승자가 YES로 해결, 나머지는 NO로 해결</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <h4>단점</h4>
+                    <ul>
+                        <li><strong>시장 연결 없음:</strong> 가격이 100%로 합산되지 않음</li>
+                        <li><strong>재고 고립:</strong> Spain YES → France YES로 전환 불가</li>
+                        <li><strong>차익거래 누출:</strong> 기계적 차익거래 강제 없음</li>
+                        <li><strong>자본 비효율:</strong> 포지션을 바꾸려면 매도 후 재매수 필요</li>
+                    </ul>
+                </div>
+            </div>
+
+            <h4>재고 고립 문제</h4>
+            <div class="box box-danger">
+                <span class="box-title">예시 시나리오</span>
+                <p>당신은 Spain YES 토큰 100개를 개당 $0.25에 보유하고 있습니다. Spain이 탈락했습니다. 이제 France YES를 원합니다:</p>
+                <ol>
+                    <li><strong>Spain YES 매도:</strong> 가격이 $0.05로 폭락 → $5만 받음 ($20 손실)</li>
+                    <li><strong>France YES 매수:</strong> 가격이 $0.40으로 상승 → 12.5개만 구매 가능</li>
+                </ol>
+                <p style="margin-top: 1rem;"><strong>결과:</strong> 이중 슬리피지, 상당한 가치 손실. 당신의 포지션은 사실상 "고립"되었습니다.</p>
+            </div>
+
+            <div class="box box-highlight">
+                <span class="box-title">Grouped Binary가 잘 작동하는 경우</span>
+                <ul>
+                    <li>전환 수요가 적은 저거래량 시장</li>
+                    <li>결과가 적은 시장 (2-3개)</li>
+                    <li>포지션 변경이 드문 단기 시장</li>
+                    <li>단순성을 우선시하는 MVP/초기 단계 제품</li>
+                </ul>
             </div>
         </section>
 
-        <!-- Section 2.3: CTF Multi-Outcome -->
-        <section id="ctf-multi" class="part-2-section">
-            <h3><span class="section-num part-2">2.3</span>CTF 다중 결과 모델</h3>
-            <p>Gnosis Conditional Tokens Framework (CTF)의 기본 기능을 사용합니다.</p>
+        <!-- Section 2.3: Grouped Market Liquidity Problem -->
+        <section id="liquidity-problem" class="part-2-section">
+            <h3><span class="section-num part-2">2.3</span>Nostra의 유동성 문제 상황</h3>
+            <p>Nostra의 Grouped Binary 모델은 단순하지만, 다중 결과 마켓에서 심각한 유동성 문제가 발생합니다.
+               실제 시나리오를 통해 어떤 상황에서 문제가 생기는지 살펴보겠습니다.</p>
 
-            <h4>작동 방식</h4>
-            <ul class="impl-list">
-                <li>
-                    <span class="impl-number">1</span>
-                    <div class="impl-content">
-                        <strong>분할 (Split)</strong>
-                        <small>1 USDC → [A, B, C, D] 모든 결과 토큰 1개씩 생성</small>
+            <h4>📌 시나리오 설정: 2026 월드컵 우승팀 예측</h4>
+            <div class="box box-highlight">
+                <span class="box-title">Nostra 마켓 구성</span>
+                <p>Nostra에서 "2026 월드컵 우승팀" 마켓을 5개 팀으로 생성:</p>
+                <div class="diagram" style="margin-top: 1rem;">
+                    <div class="diagram-content">
+                        <div class="token"><strong>Spain</strong><br>YES/NO<br><span class="token-slot">conditionId_1</span></div>
+                        <div class="token"><strong>Brazil</strong><br>YES/NO<br><span class="token-slot">conditionId_2</span></div>
+                        <div class="token"><strong>France</strong><br>YES/NO<br><span class="token-slot">conditionId_3</span></div>
+                        <div class="token"><strong>Argentina</strong><br>YES/NO<br><span class="token-slot">conditionId_4</span></div>
+                        <div class="token"><strong>England</strong><br>YES/NO<br><span class="token-slot">conditionId_5</span></div>
                     </div>
-                </li>
-                <li>
-                    <span class="impl-number">2</span>
-                    <div class="impl-content">
-                        <strong>거래 (Trade)</strong>
-                        <small>A가 이길 것 같으면 B, C, D를 팔고 A만 보유</small>
-                    </div>
-                </li>
-                <li>
-                    <span class="impl-number">3</span>
-                    <div class="impl-content">
-                        <strong>병합 (Merge)</strong>
-                        <small>[A, B, C, D] 세트를 모으면 다시 1 USDC로 교환 가능</small>
-                    </div>
-                </li>
-            </ul>
+                </div>
+                <p style="margin-top: 1rem; font-size: 0.875rem;">
+                    <strong>핵심:</strong> 각 팀은 <strong>독립된 마켓</strong>이며, 서로 연결되어 있지 않습니다.
+                </p>
+            </div>
 
-            <div class="box box-success">
-                <span class="box-title">장점</span>
-                <p>모든 결과를 모으면 언제든지 1달러로 바꿀 수 있으므로, "재고 고립" 문제가 해결됩니다. 내가 가진 B, C, D 토큰은 누군가에게는 A 토큰을 만들기 위한 재료가 됩니다.</p>
+            <h4>🔴 문제 상황 1: Stuck Inventory (포지션 전환 불가)</h4>
+            <div class="box box-danger">
+                <span class="box-title">Alice의 상황</span>
+                <p>Alice는 Spain이 우승할 것으로 예상하고 투자했습니다:</p>
+                <pre style="font-size: 0.8rem; margin: 0.75rem 0;">
+<span class="code-comment">// Alice의 초기 투자</span>
+구매: Spain YES 1,000개 @ 20¢
+투자금: <span class="code-value">$200</span>
+예상 수익: Spain 우승 시 $1,000 (5배)
+
+<span class="code-comment">// 1주일 후: Spain이 조별리그에서 탈락!</span>
+Spain YES 가격: 20¢ → <span class="code-keyword">3¢</span> (85% 하락)
+Alice의 포지션 가치: $200 → <span class="code-keyword">$30</span></pre>
+            </div>
+
+            <p>Alice는 이제 France가 우승할 것 같아서 포지션을 바꾸고 싶습니다:</p>
+
+            <div class="grid-2">
+                <div class="card" style="border-left: 3px solid #dc2626;">
+                    <h4>❌ Nostra (현재)</h4>
+                    <pre style="font-size: 0.75rem; margin: 0.5rem 0; background: #fef2f2; padding: 0.75rem; border-radius: 4px; color: #7f1d1d;">
+<span style="color: #b91c1c;">// Step 1: Spain YES 매도</span>
+매도: 1,000개 @ 3¢
+받는 금액: <span style="color: #dc2626; font-weight: 600;">$30</span>
+슬리피지: -10% → 실제 $27
+
+<span style="color: #b91c1c;">// Step 2: France YES 매수</span>
+France YES 가격: 25¢
+구매 가능: $27 / 0.25 = <span style="color: #dc2626; font-weight: 600;">108개</span>
+슬리피지: +8% → 실제 100개
+
+<span style="color: #991b1b; font-weight: 600;">결과: 1,000개 → 100개 (90% 손실)</span></pre>
+                </div>
+                <div class="card" style="border-left: 3px solid #16a34a;">
+                    <h4>✅ NegRisk (Polymarket)</h4>
+                    <pre style="font-size: 0.75rem; margin: 0.5rem 0; background: #f0fdf4; padding: 0.75rem; border-radius: 4px; color: #14532d;">
+<span style="color: #15803d;">// Direct Conversion via Adapter</span>
+Spain YES → France YES
+수학적 변환 (슬리피지 없음)
+
+가치 기준 변환:
+$30 가치 → $30 가치
+France @ 25¢ = <span style="color: #16a34a; font-weight: 600;">120개</span>
+
+<span style="color: #166534; font-weight: 600;">결과: 가치 보존, 20% 더 많은 토큰</span></pre>
+                </div>
+            </div>
+
+            <h4>🔴 문제 상황 2: 유동성 분산 (Liquidity Fragmentation)</h4>
+            <div class="box box-danger">
+                <span class="box-title">Bob의 대량 주문</span>
+                <p>Bob은 $10,000를 Brazil YES에 투자하려 합니다:</p>
+                <pre style="font-size: 0.8rem; margin: 0.75rem 0;">
+<span class="code-comment">// Nostra 오더북 상태 (Brazil YES)</span>
+총 마켓 유동성: $50,000 (5개 팀 전체)
+Brazil 마켓 유동성: <span class="code-value">$10,000</span> (1/5)
+
+오더북 깊이:
+  15¢: 5,000 shares ($750)
+  16¢: 8,000 shares ($1,280)
+  17¢: 10,000 shares ($1,700)
+  18¢: 15,000 shares ($2,700)
+  19¢: 20,000 shares ($3,800)
+─────────────────────────────
+  총 깊이: ~<span class="code-value">$10,230</span>
+
+<span class="code-comment">// Bob이 $10,000 시장가 주문 실행</span>
+$750  @ 15¢ = 5,000 shares
+$1,280 @ 16¢ = 8,000 shares
+$1,700 @ 17¢ = 10,000 shares
+$2,700 @ 18¢ = 15,000 shares
+$3,570 @ 19¢ = 18,789 shares
+─────────────────────────────
+총: <span class="code-value">56,789 shares</span> @ 평균 <span class="code-keyword">17.6¢</span>
+
+기대 가격 (15¢)으로 샀다면: 66,667 shares
+<span class="code-keyword">슬리피지 손실: ~15% (9,878 shares)</span></pre>
+            </div>
+
+            <h4>🔴 문제 상황 3: 가격 불일치 (Price Inconsistency)</h4>
+            <p>독립된 마켓이기 때문에 모든 YES 가격의 합이 100%가 되지 않을 수 있습니다:</p>
+
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>팀</th>
+                            <th>YES 가격</th>
+                            <th>실제 확률</th>
+                            <th>문제</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>Spain</td><td>25¢</td><td>~22%</td><td rowspan="5" style="vertical-align: middle; background: #fef2f2; color: #dc2626; font-weight: 600;">합계: 112¢<br><br>12% 오버북<br>(Arbitrage 기회)</td></tr>
+                        <tr><td>Brazil</td><td>23¢</td><td>~20%</td></tr>
+                        <tr><td>France</td><td>22¢</td><td>~19%</td></tr>
+                        <tr><td>Argentina</td><td>21¢</td><td>~18%</td></tr>
+                        <tr><td>England</td><td>21¢</td><td>~18%</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="box box-highlight">
+                <span class="box-title">왜 이런 일이 발생하나?</span>
+                <p><strong>Nostra:</strong> 각 마켓이 독립적 → 가격 조정하는 메커니즘 없음 → 수동 차익거래에 의존</p>
+                <p><strong>Polymarket:</strong> NegRisk 어댑터 → NO 토큰 동등성 → 자동 차익거래로 ~100% 유지</p>
+            </div>
+
+            <h4>🔴 문제 상황 4: LP 재고 리스크</h4>
+            <div class="box box-danger">
+                <span class="box-title">Market Maker Charlie의 상황</span>
+                <pre style="font-size: 0.8rem; margin: 0.75rem 0;">
+<span class="code-comment">// Charlie가 Spain 마켓에 유동성 제공</span>
+제공: YES 측 $5,000, NO 측 $5,000 (총 $10,000)
+
+<span class="code-comment">// 거래 발생: 사용자들이 Spain YES를 대량 매수</span>
+결과: Charlie는 Spain YES를 팔고 USDC를 받음
+포지션: Spain NO $8,000 보유 (편향된 재고)
+
+<span class="code-comment">// Spain 탈락 후</span>
+Spain NO = $1 (승리!)
+Charlie 수익: +$8,000
+
+<span class="code-comment">// 하지만 Spain이 우승했다면?</span>
+Spain NO = $0 (패배)
+Charlie 손실: <span class="code-keyword">-$8,000</span>
+
+<span class="code-keyword">문제: 재고를 다른 팀으로 전환할 수 없음!</span>
+Charlie가 France NO로 헤지하고 싶어도:
+1. Spain NO 매도 (슬리피지)
+2. France NO 매수 (슬리피지)
+= 이중 슬리피지로 헤지 비용 과다</pre>
+            </div>
+
+            <h4>📊 문제 요약: Nostra vs Polymarket</h4>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>상황</th>
+                            <th>Nostra (Grouped Binary)</th>
+                            <th>Polymarket (NegRisk)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>포지션 전환</strong><br><span style="font-size: 0.75rem; color: var(--text-muted);">Spain → France</span></td>
+                            <td><span class="label label-danger">불가능</span><br>매도 → 매수 (이중 슬리피지)</td>
+                            <td><span class="label label-success">가능</span><br>수학적 변환 (0% 슬리피지)</td>
+                        </tr>
+                        <tr>
+                            <td><strong>대량 주문</strong><br><span style="font-size: 0.75rem; color: var(--text-muted);">$10K 시장가</span></td>
+                            <td><span class="label label-danger">10-20% 슬리피지</span><br>분산된 유동성</td>
+                            <td><span class="label label-success">1-3% 슬리피지</span><br>통합 유동성</td>
+                        </tr>
+                        <tr>
+                            <td><strong>가격 일관성</strong><br><span style="font-size: 0.75rem; color: var(--text-muted);">Σ YES = ?</span></td>
+                            <td><span class="label label-danger">90-120%</span><br>수동 차익거래 의존</td>
+                            <td><span class="label label-success">~100%</span><br>자동 차익거래</td>
+                        </tr>
+                        <tr>
+                            <td><strong>LP 헤지</strong><br><span style="font-size: 0.75rem; color: var(--text-muted);">재고 리밸런싱</span></td>
+                            <td><span class="label label-danger">고비용</span><br>이중 거래 필요</td>
+                            <td><span class="label label-success">저비용</span><br>직접 변환 가능</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="box box-highlight">
+                <span class="box-title">💡 핵심 인사이트</span>
+                <ul>
+                    <li><strong>2-3개 결과:</strong> Nostra의 Grouped Binary가 충분히 작동</li>
+                    <li><strong>5개+ 결과:</strong> 유동성 분산이 심각해지며, 사용자 경험 저하</li>
+                    <li><strong>해결책:</strong> Section 2.4의 NegRisk 어댑터가 이 모든 문제를 해결</li>
+                </ul>
             </div>
         </section>
 
         <!-- Section 2.4: NegRisk Adapter -->
         <section id="negrisk" class="part-2-section">
-            <h3><span class="section-num part-2">2.4</span>NegRisk 어댑터 (Polymarket)</h3>
-            <p>Polymarket이 개발한 "Negative Risk" 기술은 CTF 위에 사용자 편의성을 더한 레이어입니다.</p>
-
-            <h4>사용자 경험의 마법</h4>
-            <div class="grid-2">
-                <div class="card">
-                    <h4>CTF만 사용할 때</h4>
-                    <p>사용자가 "A 매수"를 하려면:</p>
-                    <ol>
-                        <li>USDC로 [A,B,C,D] 분할</li>
-                        <li>B, C, D를 시장에 매도</li>
-                        <li>A만 남음</li>
-                    </ol>
-                    <p style="color: var(--danger);">복잡하고 가스비가 많이 듦</p>
-                </div>
-                <div class="card">
-                    <h4>NegRisk 사용 시</h4>
-                    <p>사용자가 "A 매수"를 하려면:</p>
-                    <ol>
-                        <li>그냥 USDC로 A를 산다 (끝)</li>
-                    </ol>
-                    <p style="color: var(--success);">백그라운드에서 자동 변환</p>
-                </div>
-            </div>
-        </section>
-
-        <!-- Section 2.5: NegRisk Conversion Mechanics -->
-        <section id="negrisk-conversion" class="part-2-section">
-            <h3><span class="section-num part-2">2.5</span>NegRisk 변환 메커니즘</h3>
-
-            <h4>핵심 아이디어: NO = 나머지 모든 YES</h4>
-            <p>"A가 아니다(NO)"라는 것은 "B 또는 C 또는 D다(YES)"와 같습니다.</p>
+            <h3><span class="section-num part-2">2.4</span>NegRisk 어댑터 (Polymarket 방식)</h3>
+            <p>핵심 아이디어: <strong>그룹 시장의 모든 NO 토큰은 동일한 가치를 가집니다</strong>.</p>
 
             <div class="box box-highlight">
-                <pre style="font-size: 1rem; text-align: center; margin: 0; background: transparent; color: inherit;">1 A_NO = 1 B_YES + 1 C_YES + 1 D_YES</pre>
+                <span class="box-title">핵심 공식</span>
+                <p style="text-align: center; font-size: 1.1rem;">
+                    <strong>1 Spain NO = 1 Brazil NO = 1 France NO = 1 Argentina NO = 1 England NO</strong>
+                </p>
             </div>
 
-            <p>이 등식을 이용해 유동성을 하나로 통합합니다.</p>
-
-            <h4>실전 예시: ,000 유동성, 10개 국가</h4>
-            <p>트레이더들이 순차적으로 씩 매수할 때 어떤 일이 일어나는지 추적해 봅시다.</p>
+            <h4>실전 예시: $10,000 유동성, 5개 국가</h4>
 
             <div class="diagram">
                 <div class="diagram-title">초기 설정</div>
-                <pre
-                    style="font-size: 0.85rem; margin: 0; padding: 1rem; background: #1e293b; color: #e2e8f0; border-radius: 6px;">
-10개 국가: 스페인, 프랑스, 브라질, 아르헨티나, 잉글랜드,
-           독일, 이탈리아, 포르투갈, 네덜란드, 벨기에
+                <pre style="font-size: 0.85rem; margin: 0; padding: 1rem; background: #1e293b; color: #e2e8f0; border-radius: 6px;">
+5개 국가: Spain, Brazil, France, Argentina, England
 
-초기 가격: 각 10¢ YES / 90¢ NO (10% 확률)
-마켓 메이커: 국가당 ,000 → 각 1,000 (YES+NO) 쌍</pre>
+초기 가격: 각 20¢ YES / 80¢ NO (20% 확률)
+마켓 메이커: 국가당 $2,000 공급 → 2,000 (YES+NO) 쌍씩
+총 유동성: $10,000</pre>
             </div>
 
-            <h5 style="margin-top: 1.5rem;">Grouped Binary: 10번 거래 후 (주로 스페인)</h5>
-            <div class="table-wrapper">
+            <div class="table-wrapper" style="margin-top: 1.5rem;">
                 <table>
+                    <caption style="text-align: left; margin-bottom: 0.5rem; font-weight: 600;">5번의 거래 후 (대부분 Spain 매수)</caption>
                     <thead>
                         <tr>
                             <th>국가</th>
@@ -1039,125 +1254,96 @@ LP 수익률:
                     </thead>
                     <tbody>
                         <tr>
-                            <td><strong>스페인</strong></td>
-                            <td style="color: var(--danger);">312</td>
-                            <td>1,000</td>
-                            <td><span class="label label-danger">688 NO 고립됨!</span></td>
+                            <td><strong>Spain</strong></td>
+                            <td style="color: var(--danger);">500</td>
+                            <td>2,000</td>
+                            <td><span class="label label-danger">1,500 NO 고립!</span></td>
                         </tr>
                         <tr>
-                            <td>프랑스</td>
-                            <td>800</td>
-                            <td>1,000</td>
+                            <td>Brazil</td>
+                            <td>1,600</td>
+                            <td>2,000</td>
+                            <td><span class="label label-warning">400 과잉 NO</span></td>
+                        </tr>
+                        <tr>
+                            <td>France</td>
+                            <td>1,800</td>
+                            <td>2,000</td>
                             <td><span class="label label-warning">200 과잉 NO</span></td>
                         </tr>
                         <tr>
-                            <td>브라질</td>
-                            <td>900</td>
-                            <td>1,000</td>
-                            <td><span class="label label-warning">100 과잉 NO</span></td>
+                            <td>Argentina</td>
+                            <td>2,000</td>
+                            <td>2,000</td>
+                            <td><span class="label label-success">균형</span></td>
                         </tr>
                         <tr>
-                            <td>기타...</td>
-                            <td>1,000</td>
-                            <td>1,000</td>
+                            <td>England</td>
+                            <td>2,000</td>
+                            <td>2,000</td>
                             <td><span class="label label-success">균형</span></td>
                         </tr>
                     </tbody>
                 </table>
             </div>
 
-            <div class="box box-danger" style="margin-top: 1rem;">
-                <span class="box-title">문제: 스페인 유동성 위기</span>
-                <pre
-                    style="font-size: 0.85rem; margin: 0.5rem 0; padding: 1rem; background: #450a0a; color: #fecaca; border-radius: 6px;">
-거래 11:  스페인 YES 매수...
+            <div class="grid-2" style="margin-top: 1.5rem;">
+                <div class="card" style="border-left: 3px solid #dc2626;">
+                    <h4>❌ Grouped Binary</h4>
+                    <pre style="font-size: 0.75rem; margin: 0.5rem 0; background: #fef2f2; padding: 0.75rem; border-radius: 4px; color: #7f1d1d;">
+<span style="color: #b91c1c;">// 거래 6: Spain YES $100 추가 매수</span>
+Spain YES 500개만 남음
+가격 급등: 20¢ → 30¢ → 40¢
+<span style="color: #dc2626; font-weight: 600;">$100로 250개만 매수 가능 (500개가 아님!)</span>
 
-스페인 YES 312개만 남음!
-가격 급등: 10¢ → 15¢ → 20¢ (슬리피지)
-로 100개 대신 50개만 매수 가능
+반면: <span style="color: #991b1b; font-weight: 600;">1,500 Spain NO는 쓸모없이 방치됨 💀</span></pre>
+                </div>
+                <div class="card" style="border-left: 3px solid #16a34a;">
+                    <h4>✅ NegRisk</h4>
+                    <pre style="font-size: 0.75rem; margin: 0.5rem 0; background: #f0fdf4; padding: 0.75rem; border-radius: 4px; color: #14532d;">
+<span style="color: #15803d;">// 마켓 메이커가 과잉 NO를 변환</span>
+5개 국가에서 각 200 NO 수집
+= 200개의 완전한 NO 세트 (5개 토큰씩)
+= 200 × $4 = <span style="color: #16a34a; font-weight: 600;">$800 USDC로 환원!</span>
 
-반면: 688 스페인 NO 토큰은 쓸모없이 방치됨 💀
-마켓 메이커는 NO를 다른 국가로 옮길 수 없음</pre>
+→ 400개의 새 Spain YES+NO 쌍 발행</pre>
+                </div>
             </div>
 
-            <h5 style="margin-top: 1.5rem;">NegRisk: 마켓 메이커 리밸런싱</h5>
-            <div class="box box-highlight">
-                <span class="box-title">NegRisk 변환 마법</span>
-                <pre
-                    style="font-size: 0.85rem; margin: 0.5rem 0; padding: 1rem; background: #1e1b4b; color: #c7d2fe; border-radius: 6px;">
-각 국가에서 200개의 과잉 NO를 가져옴:
-• 200 스페인 NO + 200 프랑스 NO + 200 브라질 NO + ...
-= 2,000개의 완전한 NO 세트 (각 국가당 하나씩)
-= 10 NO 토큰 × 200 세트 = ,800 가치 (10 NO = )
-
-변환 → ,800 USDC가 마켓 메이커에게 반환됨!</pre>
-                <p style="margin-top: 0.75rem;">마켓 메이커는 ,800를 사용하여 500개의 새로운 스페인 (YES+NO) 쌍을 발행 → <strong>스페인 유동성
-                        복구!</strong>
-                </p>
-            </div>
-
-            <div class="grid-2" style="margin-top: 1rem;">
+            <h4 style="margin-top: 1.5rem;">결과 비교</h4>
+            <div class="grid-2">
                 <div class="card" style="border-left: 3px solid var(--danger);">
-                    <h4>Grouped Binary 결과</h4>
+                    <h4>Grouped Binary</h4>
                     <ul style="font-size: 0.875rem;">
-                        <li>스페인 YES 잔량: <strong style="color: var(--danger);">312</strong></li>
-                        <li>슬리피지: <strong style="color: var(--danger);">높음</strong></li>
-                        <li>과잉 NO: <strong>고립됨</strong></li>
-                        <li>다음 트레이더 지불: <strong>+50% 더 비쌈</strong></li>
+                        <li>Spain YES 잔량: <strong style="color: var(--danger);">500</strong> (고갈)</li>
+                        <li>슬리피지: <strong style="color: var(--danger);">높음 (+100%)</strong></li>
+                        <li>과잉 NO: <strong>영원히 고립됨</strong></li>
                     </ul>
                 </div>
                 <div class="card" style="border-left: 3px solid var(--success);">
-                    <h4>NegRisk 결과</h4>
+                    <h4>NegRisk</h4>
                     <ul style="font-size: 0.875rem;">
-                        <li>스페인 YES 잔량: <strong style="color: var(--success);">800</strong></li>
-                        <li>슬리피지: <strong style="color: var(--success);">낮음</strong></li>
-                        <li>과잉 NO: <strong>변환됨</strong></li>
-                        <li>다음 트레이더 지불: <strong>정상 가격</strong></li>
+                        <li>Spain YES 잔량: <strong style="color: var(--success);">1,300</strong> (복구됨)</li>
+                        <li>슬리피지: <strong style="color: var(--success);">낮음 (정상)</strong></li>
+                        <li>과잉 NO: <strong>USDC로 변환됨</strong></li>
                     </ul>
                 </div>
             </div>
 
-            <h4 style="margin-top: 2rem;">누가 리밸런싱을 수행하나요?</h4>
-            <p>NegRisk 어댑터는 <strong>비허가형(permissionless)</strong>입니다. 누구나 변환 함수를 호출할 수 있습니다. 실제로는:</p>
-
-            <div class="grid-2">
-                <div class="card">
-                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;">
-                        <span style="font-size: 1.25rem;">🤖</span>
-                        <h4 style="margin: 0;">차익거래 봇</h4>
-                    </div>
-                    <p style="font-size: 0.875rem;">자동화된 봇이 가격 불일치를 모니터링합니다. YES 가격의 합이 100%가 아닐 때, 변환을 통해 수익을 내며 부수적으로 유동성을 리밸런싱합니다.</p>
-                </div>
-                <div class="card">
-                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;">
-                        <span style="font-size: 1.25rem;">🏦</span>
-                        <h4 style="margin: 0;">전문 마켓 메이커</h4>
-                    </div>
-                    <p style="font-size: 0.875rem;">Wintermute, GSR 같은 기업들은 정교한 전략을 실행합니다. 그들은 좁은 스프레드를 유지하기 위해 NegRisk를 사용하여 재고를 적극적으로 관리합니다.</p>
-                </div>
-                <div class="card">
-                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;">
-                        <span style="font-size: 1.25rem;">⚙️</span>
-                        <h4 style="margin: 0;">프로토콜 자동화</h4>
-                    </div>
-                    <p style="font-size: 0.875rem;">일부 프로토콜은 재고가 임계값을 넘어가면 자동으로 리밸런싱하는 키퍼(Keeper) 봇을 운영합니다 (거래 수수료로 자금 조달).</p>
-                </div>
-                <div class="card">
-                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;">
-                        <span style="font-size: 1.25rem;">💡</span>
-                        <h4 style="margin: 0;">스마트 트레이더</h4>
-                    </div>
-                    <p style="font-size: 0.875rem;">고급 사용자는 UI나 스크립트를 통해 직접 변환하여 차익을 얻을 수 있습니다.</p>
-                </div>
+            <div class="box box-success" style="margin-top: 1.5rem;">
+                <span class="box-title">왜 작동하는가?</span>
+                <p><strong>핵심:</strong> NegRisk에서는 모든 NO 토큰을 결합하여 USDC로 환원할 수 있습니다 (그 중 하나는 반드시 승리하므로). 이것이 "고립된" 재고를 해제하여 마켓 메이커가 지속적으로 유동성을 가장 필요한 곳으로 재배치할 수 있게 합니다.</p>
             </div>
         </section>
 
-        <!-- Section 2.6: NegRisk Architecture -->
+        <!-- Section 2.5: NegRisk Architecture -->
         <section id="negrisk-arch" class="part-2-section">
-            <h3><span class="section-num part-2">2.6</span>NegRisk 아키텍처</h3>
+            <h3><span class="section-num part-2">2.5</span>NegRisk 아키텍처</h3>
 
-            <div style="margin-bottom: 2rem;">
-                <p>참조 구현 (Polymarket):
+            <div class="box box-highlight">
+                <span class="box-title">오픈소스 참조</span>
+                <p>Polymarket의 NegRisk 구현은 오픈소스이며 ChainSecurity와 OpenZeppelin의 감사를 받았습니다.</p>
+                <p style="margin-top: 0.75rem; font-size: 0.8125rem;">
                     <a href="https://github.com/Polymarket/neg-risk-ctf-adapter" target="_blank"
                         style="color: var(--accent);">GitHub: Polymarket/neg-risk-ctf-adapter →</a>
                 </p>
@@ -1250,9 +1436,9 @@ LP 수익률:
             </div>
         </section>
 
-        <!-- Section 2.7: Implementation Options -->
+        <!-- Section 2.6: Implementation Options -->
         <section id="implementation-options" class="part-2-section">
-            <h3><span class="section-num part-2">2.7</span>구현 옵션</h3>
+            <h3><span class="section-num part-2">2.6</span>구현 옵션</h3>
 
             <h4>Nostra가 NegRisk를 구현하기 위해 필요한 것</h4>
             <ul class="impl-list">
