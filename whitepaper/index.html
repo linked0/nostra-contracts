@@ -46,7 +46,7 @@
                     <ul>
                         <li><a href="#model-comparison">2.1 Model Comparison Overview</a></li>
                         <li><a href="#grouped-binary">2.2 Grouped Binary Model (Nostra)</a></li>
-                        <li><a href="#ctf-multi">2.3 CTF Multi-Outcome Model</a></li>
+                        <li><a href="#liquidity-problem">2.3 Grouped Market Liquidity Problem</a></li>
                         <li><a href="#negrisk">2.4 NegRisk Adapter (Polymarket)</a></li>
                         <li><a href="#negrisk-conversion">2.5 NegRisk Conversion Mechanics</a></li>
                         <li><a href="#negrisk-arch">2.6 NegRisk Architecture</a></li>
@@ -1175,13 +1175,14 @@ Only deposit what you can afford to lose.</pre>
         <!-- PART 1: MARKET MODELS -->
         <div class="part-divider">
             <h2>Part 2: Advanced Market Models</h2>
-            <span class="part-subtitle">CTF Multi-Outcome vs NegRisk Adapter</span>
+            <span class="part-subtitle">Nostra Grouped Binary vs Polymarket NegRisk</span>
         </div>
 
         <!-- Section 1.1: Model Comparison -->
         <section id="model-comparison" class="part-2-section">
             <h3><span class="section-num part-2">2.1</span>Market Model Comparison Overview</h3>
-            <p>Understanding the three primary market model architectures for prediction markets with multiple outcomes.
+            <p>Understanding the two primary market model architectures for prediction markets with multiple outcomes:
+               Nostra's current Grouped Binary approach vs Polymarket's NegRisk Adapter solution.
             </p>
 
             <div class="table-wrapper">
@@ -1190,7 +1191,6 @@ Only deposit what you can afford to lose.</pre>
                         <tr>
                             <th>Feature</th>
                             <th>Grouped Binary (Nostra)</th>
-                            <th>CTF Multi-Outcome</th>
                             <th>Grouped Binary + NegRisk (Polymarket)</th>
                         </tr>
                     </thead>
@@ -1198,43 +1198,41 @@ Only deposit what you can afford to lose.</pre>
                         <tr>
                             <td><strong>Initial Probability</strong></td>
                             <td>Flexible (50% or 100/N%)</td>
-                            <td>Flexible (100/N% or External)</td>
                             <td>Flexible (Market Decided)</td>
                         </tr>
                         <tr>
                             <td><strong>Sum of YES Prices</strong></td>
                             <td><span class="label label-danger">Flexible (Unlinked)</span></td>
-                            <td><span class="label label-success">Always = 100%</span></td>
-                            <td><span class="label label-success">~100%</span></td>
+                            <td><span class="label label-success">~100% (Arbitrage Enforced)</span></td>
                         </tr>
                         <tr>
                             <td><strong>Market Linkage</strong></td>
-                            <td>Independent</td>
-                            <td>Mechanical (Split/Merge)</td>
-                            <td>Adapter (NegRisk)</td>
+                            <td>Independent (No Connection)</td>
+                            <td>Adapter Layer (NegRisk)</td>
                         </tr>
                         <tr>
                             <td><strong>Stuck Inventory</strong></td>
-                            <td><span class="label label-danger">Yes</span></td>
-                            <td><span class="label label-success">No</span></td>
-                            <td><span class="label label-success">No</span></td>
+                            <td><span class="label label-danger">Yes (Major Issue)</span></td>
+                            <td><span class="label label-success">No (Convertible)</span></td>
                         </tr>
                         <tr>
                             <td><strong>conditionId</strong></td>
                             <td>Multiple (Per Outcome)</td>
-                            <td>Single (Shared)</td>
                             <td>Multiple + negRiskMarketId</td>
                         </tr>
                         <tr>
                             <td><strong>Position Conversion</strong></td>
                             <td><span class="label label-danger">Not Possible</span></td>
-                            <td><span class="label label-success">Via Merge</span></td>
                             <td><span class="label label-success">Via Adapter</span></td>
                         </tr>
                         <tr>
-                            <td><strong>Implementation</strong></td>
+                            <td><strong>Liquidity Fragmentation</strong></td>
+                            <td><span class="label label-danger">Severe (N Markets)</span></td>
+                            <td><span class="label label-success">Unified</span></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Implementation Complexity</strong></td>
                             <td><span class="label label-success">Simple</span></td>
-                            <td><span class="label label-warning">Complex</span></td>
                             <td><span class="label label-warning">6-10 Weeks</span></td>
                         </tr>
                     </tbody>
@@ -1244,11 +1242,9 @@ Only deposit what you can afford to lose.</pre>
             <div class="box box-highlight">
                 <span class="box-title">Key Takeaway</span>
                 <ul>
-                    <li><strong>Nostra Current:</strong> Grouped Binary - Simple implementation but stuck inventory
-                        issues</li>
-                    <li><strong>Polymarket:</strong> Grouped Binary + NegRisk - Solves inventory via adapter layer</li>
-                    <li><strong>Core Difference:</strong> Market linkage mechanism (None vs Split/Merge vs NegRisk
-                        Adapter)</li>
+                    <li><strong>Nostra Current:</strong> Grouped Binary - Simple implementation but serious liquidity fragmentation and stuck inventory issues</li>
+                    <li><strong>Polymarket:</strong> Grouped Binary + NegRisk - Same base structure, but solves inventory and liquidity via adapter layer</li>
+                    <li><strong>Core Difference:</strong> NegRisk adapter enables NO token equivalence, converting independent markets into a unified liquidity system</li>
                 </ul>
             </div>
         </section>
@@ -1325,382 +1321,237 @@ Only deposit what you can afford to lose.</pre>
             </div>
         </section>
 
-        <!-- Section 1.3: CTF Multi-Outcome -->
-        <section id="ctf-multi" class="part-2-section">
-            <h3><span class="section-num part-2">2.3</span>CTF Multi-Outcome Model</h3>
-            <p>The CTF Multi-Outcome model is the "pure" way to handle multiple mutually exclusive outcomes using the
-                Conditional Tokens Framework. Unlike Grouped Binary where each outcome is a separate market, CTF
-                Multi-Outcome uses a single condition with multiple outcome slots.</p>
+        <!-- Section 2.3: Grouped Market Liquidity Problem -->
+        <section id="liquidity-problem" class="part-2-section">
+            <h3><span class="section-num part-2">2.3</span>Liquidity Problems in Grouped Binary</h3>
+            <p>Nostra's Grouped Binary model is simple, but serious liquidity issues arise in multi-outcome markets.
+               Let's examine specific scenarios where problems occur.</p>
 
-            <h4>Model Structure Comparison</h4>
-
-            <div class="diagram">
-                <div class="diagram-title">CTF Multi-Outcome Model — Single Condition, Multiple Outcomes</div>
-                <p style="text-align: center; margin-bottom: 1rem; font-size: 0.875rem; color: var(--text-muted);">One
-                    <code>conditionId</code> shared by all outcomes
-                </p>
-                <div class="diagram-content">
-                    <div class="token"><strong>Spain</strong><br><span class="token-slot">Slot 0</span></div>
-                    <div class="token"><strong>France</strong><br><span class="token-slot">Slot 1</span></div>
-                    <div class="token"><strong>Brazil</strong><br><span class="token-slot">Slot 2</span></div>
-                    <div class="token"><strong>Argentina</strong><br><span class="token-slot">Slot 3</span></div>
-                    <div class="token"><strong>England</strong><br><span class="token-slot">Slot 4</span></div>
+            <h4>📌 Scenario Setup: 2026 World Cup Winner Prediction</h4>
+            <div class="box box-highlight">
+                <span class="box-title">Nostra Market Structure</span>
+                <p>Creating a "2026 World Cup Winner" market with 5 teams on Nostra:</p>
+                <div class="diagram" style="margin-top: 1rem;">
+                    <div class="diagram-content">
+                        <div class="token"><strong>Spain</strong><br>YES/NO<br><span class="token-slot">conditionId_1</span></div>
+                        <div class="token"><strong>Brazil</strong><br>YES/NO<br><span class="token-slot">conditionId_2</span></div>
+                        <div class="token"><strong>France</strong><br>YES/NO<br><span class="token-slot">conditionId_3</span></div>
+                        <div class="token"><strong>Argentina</strong><br>YES/NO<br><span class="token-slot">conditionId_4</span></div>
+                        <div class="token"><strong>England</strong><br>YES/NO<br><span class="token-slot">conditionId_5</span></div>
+                    </div>
                 </div>
-                <pre
-                    style="margin-top: 1.5rem;">prepareCondition(oracle, questionId, <span class="code-value">outcomeSlotCount=5</span>)</pre>
+                <p style="margin-top: 1rem; font-size: 0.875rem;">
+                    <strong>Key Point:</strong> Each team is an <strong>independent market</strong> with no connection to others.
+                </p>
             </div>
 
-            <h4>Split and Merge Operations</h4>
-            <p>CTF Multi-Outcome enables mechanical split/merge operations that are impossible in Grouped Binary:</p>
+            <h4>🔴 Problem 1: Stuck Inventory (Cannot Convert Position)</h4>
+            <div class="box box-danger">
+                <span class="box-title">Alice's Situation</span>
+                <p>Alice invested expecting Spain to win:</p>
+                <pre style="font-size: 0.8rem; margin: 0.75rem 0;">
+<span class="code-comment">// Alice's Initial Investment</span>
+Purchased: Spain YES 1,000 tokens @ 20¢
+Investment: <span class="code-value">$200</span>
+Expected Return: $1,000 if Spain wins (5x)
+
+<span class="code-comment">// One week later: Spain eliminated in group stage!</span>
+Spain YES price: 20¢ → <span class="code-keyword">3¢</span> (85% drop)
+Alice's position value: $200 → <span class="code-keyword">$30</span></pre>
+            </div>
+
+            <p>Alice now thinks France will win and wants to switch her position:</p>
 
             <div class="grid-2">
-                <div class="card">
-                    <h4>Split: USDC → All Tokens</h4>
-                    <p><code>$1 USDC</code> → 1 Spain + 1 France + 1 Brazil + 1 Argentina + 1 England</p>
-                    <p style="font-size: 0.8125rem; color: var(--text-muted);">Exactly ONE token will be worth $1,
-                        others $0</p>
+                <div class="card" style="border-left: 3px solid #dc2626;">
+                    <h4>❌ Nostra (Current)</h4>
+                    <pre style="font-size: 0.75rem; margin: 0.5rem 0; background: #fef2f2; padding: 0.75rem; border-radius: 4px; color: #7f1d1d;">
+<span style="color: #b91c1c;">// Step 1: Sell Spain YES</span>
+Sell: 1,000 tokens @ 3¢
+Amount received: <span style="color: #dc2626; font-weight: 600;">$30</span>
+Slippage: -10% → Actual $27
+
+<span style="color: #b91c1c;">// Step 2: Buy France YES</span>
+France YES price: 25¢
+Can purchase: $27 / 0.25 = <span style="color: #dc2626; font-weight: 600;">108 tokens</span>
+Slippage: +8% → Actual 100 tokens
+
+<span style="color: #991b1b; font-weight: 600;">Result: 1,000 → 100 tokens (90% loss)</span></pre>
                 </div>
-                <div class="card">
-                    <h4>Merge: All Tokens → USDC</h4>
-                    <p>1 Spain + 1 France + 1 Brazil + 1 Argentina + 1 England → <code>$1 USDC</code></p>
-                    <p style="font-size: 0.8125rem; color: var(--text-muted);">Guaranteed $1 regardless of outcome</p>
+                <div class="card" style="border-left: 3px solid #16a34a;">
+                    <h4>✅ NegRisk (Polymarket)</h4>
+                    <pre style="font-size: 0.75rem; margin: 0.5rem 0; background: #f0fdf4; padding: 0.75rem; border-radius: 4px; color: #14532d;">
+<span style="color: #15803d;">// Direct Conversion via Adapter</span>
+Spain YES → France YES
+Mathematical conversion (no slippage)
+
+Value-based conversion:
+$30 value → $30 value
+France @ 25¢ = <span style="color: #16a34a; font-weight: 600;">120 tokens</span>
+
+<span style="color: #166534; font-weight: 600;">Result: Value preserved, 20% more tokens</span></pre>
                 </div>
             </div>
 
-            <div class="box box-success">
-                <span class="box-title">Why Sum Always = 100%</span>
-                <p>The split/merge mechanism creates mechanical arbitrage that forces prices to sum to 100%:</p>
-                <ul>
-                    <li><strong>If sum > 100%:</strong> Arbitrageurs split $1 → sell all tokens → profit from excess
-                    </li>
-                    <li><strong>If sum < 100%:</strong> Arbitrageurs buy all tokens cheap → merge → profit from $1</li>
-                </ul>
-            </div>
-        </section>
+            <h4>🔴 Problem 2: Liquidity Fragmentation</h4>
+            <div class="box box-danger">
+                <span class="box-title">Bob's Large Order</span>
+                <p>Bob wants to invest $10,000 in Brazil YES:</p>
+                <pre style="font-size: 0.8rem; margin: 0.75rem 0;">
+<span class="code-comment">// Nostra Order Book State (Brazil YES)</span>
+Total market liquidity: $50,000 (all 5 teams)
+Brazil market liquidity: <span class="code-value">$10,000</span> (1/5)
 
-        <!-- Section 1.4: NegRisk Adapter -->
-        <section id="negrisk" class="part-2-section">
-            <h3><span class="section-num part-2">2.4</span>NegRisk Adapter (Polymarket Approach)</h3>
-            <p><strong>NegRisk = Negative Risk</strong> — Managing positions through NO tokens. It's an adapter layer
-                that links grouped binary markets via NO token equivalence, enabling position conversion.</p>
+Order book depth:
+  15¢: 5,000 shares ($750)
+  16¢: 8,000 shares ($1,280)
+  17¢: 10,000 shares ($1,700)
+  18¢: 15,000 shares ($2,700)
+  19¢: 20,000 shares ($3,800)
+─────────────────────────────
+  Total depth: ~<span class="code-value">$10,230</span>
 
-            <h4>Real-World Example: Polymarket 2026 FIFA World Cup Winner</h4>
-            <div class="box box-success">
-                <span class="box-title">Live Market Data</span>
-                <p>Polymarket's "2026 FIFA World Cup Winner" market demonstrates NegRisk in production:</p>
-                <ul>
-                    <li><strong>Total Volume:</strong> $11.1M+ traded</li>
-                    <li><strong>Total Liquidity:</strong> $2.08M</li>
-                    <li><strong>Outcomes:</strong> 48+ countries (Spain, France, England, Brazil, Argentina, etc.)</li>
-                    <li><strong>End Date:</strong> July 20, 2026</li>
-                </ul>
-                <p style="margin-top: 1rem; font-size: 0.8125rem;">
-                    <a href="https://polymarket.com/event/2026-fifa-world-cup-winner-595" target="_blank"
-                        style="color: var(--accent);">View on Polymarket →</a>
-                    <span style="margin: 0 0.5rem; color: var(--text-muted);">|</span>
-                    <a href="https://gamma-api.polymarket.com/events?slug=2026-fifa-world-cup-winner-595"
-                        target="_blank" style="color: var(--secondary);">API Data (JSON) →</a>
-                </p>
+<span class="code-comment">// Bob executes $10,000 market order</span>
+$750  @ 15¢ = 5,000 shares
+$1,280 @ 16¢ = 8,000 shares
+$1,700 @ 17¢ = 10,000 shares
+$2,700 @ 18¢ = 15,000 shares
+$3,570 @ 19¢ = 18,789 shares
+─────────────────────────────
+Total: <span class="code-value">56,789 shares</span> @ avg <span class="code-keyword">17.6¢</span>
+
+Expected at 15¢: 66,667 shares
+<span class="code-keyword">Slippage loss: ~15% (9,878 shares)</span></pre>
             </div>
 
-            <h4>Technical Structure (from Polymarket API)</h4>
+            <h4>🔴 Problem 3: Price Inconsistency</h4>
+            <p>Because markets are independent, the sum of all YES prices may not equal 100%:</p>
+
             <div class="table-wrapper">
                 <table>
                     <thead>
                         <tr>
-                            <th>Field</th>
-                            <th>Value</th>
-                            <th>Purpose</th>
+                            <th>Team</th>
+                            <th>YES Price</th>
+                            <th>Implied Probability</th>
+                            <th>Issue</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>Spain</td><td>25¢</td><td>~22%</td><td rowspan="5" style="vertical-align: middle; background: #fef2f2; color: #dc2626; font-weight: 600;">Sum: 112¢<br><br>12% Overbook<br>(Arbitrage Opportunity)</td></tr>
+                        <tr><td>Brazil</td><td>23¢</td><td>~20%</td></tr>
+                        <tr><td>France</td><td>22¢</td><td>~19%</td></tr>
+                        <tr><td>Argentina</td><td>21¢</td><td>~18%</td></tr>
+                        <tr><td>England</td><td>21¢</td><td>~18%</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="box box-highlight">
+                <span class="box-title">Why Does This Happen?</span>
+                <p><strong>Nostra:</strong> Each market is independent → No price adjustment mechanism → Relies on manual arbitrage</p>
+                <p><strong>Polymarket:</strong> NegRisk adapter → NO token equivalence → Automatic arbitrage maintains ~100%</p>
+            </div>
+
+            <h4>🔴 Problem 4: LP Inventory Risk</h4>
+            <div class="box box-danger">
+                <span class="box-title">Market Maker Charlie's Situation</span>
+                <pre style="font-size: 0.8rem; margin: 0.75rem 0;">
+<span class="code-comment">// Charlie provides liquidity to Spain market</span>
+Provided: YES side $5,000, NO side $5,000 (total $10,000)
+
+<span class="code-comment">// Trading occurs: Users buy Spain YES heavily</span>
+Result: Charlie sells Spain YES and receives USDC
+Position: Holding $8,000 Spain NO (skewed inventory)
+
+<span class="code-comment">// After Spain is eliminated</span>
+Spain NO = $1 (wins!)
+Charlie profit: +$8,000
+
+<span class="code-comment">// But what if Spain had won?</span>
+Spain NO = $0 (loses)
+Charlie loss: <span class="code-keyword">-$8,000</span>
+
+<span class="code-keyword">Problem: Cannot convert inventory to another team!</span>
+Even if Charlie wants to hedge with France NO:
+1. Sell Spain NO (slippage)
+2. Buy France NO (slippage)
+= Double slippage makes hedging too expensive</pre>
+            </div>
+
+            <h4>📊 Problem Summary: Nostra vs Polymarket</h4>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Scenario</th>
+                            <th>Nostra (Grouped Binary)</th>
+                            <th>Polymarket (NegRisk)</th>
                         </tr>
                     </thead>
                     <tbody>
                         <tr>
-                            <td><code>negRiskMarketId</code></td>
-                            <td><code style="font-size: 0.7rem;">0xb5c32a9acd39...</code></td>
-                            <td>Links all 48+ binary markets together</td>
+                            <td><strong>Position Conversion</strong><br><span style="font-size: 0.75rem; color: var(--text-muted);">Spain → France</span></td>
+                            <td><span class="label label-danger">Impossible</span><br>Sell → Buy (double slippage)</td>
+                            <td><span class="label label-success">Possible</span><br>Mathematical conversion (0% slippage)</td>
                         </tr>
                         <tr>
-                            <td><code>conditionId</code> (Spain)</td>
-                            <td><code style="font-size: 0.7rem;">0x7976b8dbacf9...</code></td>
-                            <td>Unique per outcome (each country has its own)</td>
+                            <td><strong>Large Orders</strong><br><span style="font-size: 0.75rem; color: var(--text-muted);">$10K market order</span></td>
+                            <td><span class="label label-danger">10-20% slippage</span><br>Fragmented liquidity</td>
+                            <td><span class="label label-success">1-3% slippage</span><br>Unified liquidity</td>
                         </tr>
                         <tr>
-                            <td><code>conditionId</code> (Brazil)</td>
-                            <td><code style="font-size: 0.7rem;">0x30d55d8124ee...</code></td>
-                            <td>Different conditionId, same negRiskMarketId</td>
+                            <td><strong>Price Consistency</strong><br><span style="font-size: 0.75rem; color: var(--text-muted);">Σ YES = ?</span></td>
+                            <td><span class="label label-danger">90-120%</span><br>Relies on manual arbitrage</td>
+                            <td><span class="label label-success">~100%</span><br>Automatic arbitrage</td>
                         </tr>
                         <tr>
-                            <td><code>clobTokenIds</code></td>
-                            <td>2 per market</td>
-                            <td>YES token ID + NO token ID for orderbook</td>
-                        </tr>
-                        <tr>
-                            <td><code>minTickSize</code></td>
-                            <td>0.01</td>
-                            <td>Minimum price increment ($0.01)</td>
-                        </tr>
-                        <tr>
-                            <td><code>minOrderSize</code></td>
-                            <td>5</td>
-                            <td>Minimum order amount</td>
+                            <td><strong>LP Hedging</strong><br><span style="font-size: 0.75rem; color: var(--text-muted);">Inventory rebalancing</span></td>
+                            <td><span class="label label-danger">High cost</span><br>Requires double trade</td>
+                            <td><span class="label label-success">Low cost</span><br>Direct conversion possible</td>
                         </tr>
                     </tbody>
                 </table>
             </div>
 
-            <h4>Current Odds Example</h4>
-            <div class="diagram">
-                <div class="diagram-title">Top Contenders — Prices from Polymarket</div>
-                <div class="diagram-content">
-                    <div class="token"><strong>Spain</strong><br>16¢ YES<br><span class="token-slot">$169K vol</span>
-                    </div>
-                    <div class="token"><strong>France</strong><br>14¢ YES<br><span class="token-slot">$142K vol</span>
-                    </div>
-                    <div class="token"><strong>England</strong><br>13¢ YES<br><span class="token-slot">$128K vol</span>
-                    </div>
-                    <div class="token"><strong>Brazil</strong><br>9¢ YES<br><span class="token-slot">$89K vol</span>
-                    </div>
-                    <div class="token"><strong>Argentina</strong><br>9¢ YES<br><span class="token-slot">$85K vol</span>
-                    </div>
-                </div>
-                <p style="text-align: center; margin-top: 1rem; font-size: 0.8125rem; color: var(--text-muted);">
-                    Sum ≈ 61% for top 5 teams. Remaining ~39% distributed across 43+ other countries.
-                </p>
-            </div>
-
-            <h4>The Problem: Stuck Inventory</h4>
-            <div class="box box-danger">
-                <span class="box-title">Grouped Binary Limitation</span>
-                <p>In Grouped Binary (Nostra's current model), each outcome is independent. If you hold Spain YES and
-                    want France YES instead:</p>
-                <ol>
-                    <li>Sell Spain YES on orderbook (slippage risk)</li>
-                    <li>Use USDC to buy France YES (more slippage)</li>
-                </ol>
-                <p><strong>No direct conversion possible.</strong></p>
-            </div>
-
-            <h4>The Key Insight: NO Token Equivalence</h4>
-            <p>In a mutually exclusive market (only ONE team can win), all NO tokens have a special property:</p>
-
             <div class="box box-highlight">
-                <span class="box-title">Mathematical Equivalence</span>
-                <p><strong>If Spain wins:</strong> Spain NO = $0, but France NO = $1, Brazil NO = $1, etc.</p>
-                <p><strong>If France wins:</strong> France NO = $0, but Spain NO = $1, Brazil NO = $1, etc.</p>
-                <p style="margin-top: 1rem;"><strong>N NO tokens (one for each team) = $(N-1) guaranteed</strong></p>
+                <span class="box-title">💡 Key Insights</span>
+                <ul>
+                    <li><strong>2-3 outcomes:</strong> Nostra's Grouped Binary works adequately</li>
+                    <li><strong>5+ outcomes:</strong> Liquidity fragmentation becomes severe, degrading UX</li>
+                    <li><strong>Solution:</strong> NegRisk adapter in Section 2.4 solves all these problems</li>
+                </ul>
             </div>
-
-            <h4>Example: 5 Teams</h4>
-            <pre>
-<span class="code-comment">// If Spain wins:</span>
-Spain NO = <span class="code-value">$0</span>
-France NO = <span class="code-value">$1</span>
-Brazil NO = <span class="code-value">$1</span>
-Argentina NO = <span class="code-value">$1</span>
-England NO = <span class="code-value">$1</span>
-<span class="code-keyword">Total = $4</span>
-
-<span class="code-comment">// If France wins:</span>
-Spain NO = <span class="code-value">$1</span>
-France NO = <span class="code-value">$0</span>
-Brazil NO = <span class="code-value">$1</span>
-Argentina NO = <span class="code-value">$1</span>
-England NO = <span class="code-value">$1</span>
-<span class="code-keyword">Total = $4</span>
-
-<span class="code-comment">// No matter who wins: Total = $4 (always!)</span>
-<span class="code-keyword">5 NO tokens = $4 = $(N-1)</span>
-            </pre>
         </section>
 
-        <!-- Section 1.5: NegRisk Conversion -->
-        <section id="negrisk-conversion" class="part-2-section">
-            <h3><span class="section-num part-2">2.5</span>NegRisk Conversion Mechanics</h3>
-            <p>NegRisk uses the mathematical equivalence to enable position conversion:</p>
+        <!-- Section 2.4: NegRisk Adapter -->
+        <section id="negrisk" class="part-2-section">
+            <h3><span class="section-num part-2">2.4</span>NegRisk Adapter (Polymarket Approach)</h3>
+            <p>The key insight: <strong>all NO tokens from a grouped market have equal value</strong>. This enables liquidity rebalancing.</p>
 
-            <h4>Conversion Formula: NO → YES</h4>
             <div class="box box-highlight">
-                <p><strong>You have:</strong> Spain NO + France NO + Brazil NO + Argentina NO (4 tokens)</p>
-                <p><strong>You want:</strong> England YES</p>
-                <p style="margin-top: 1rem;"><strong>Conversion:</strong><br>
-                    4 NO tokens (not England) = $3 guaranteed value = 1 England YES + remaining USDC</p>
-                <p style="margin-top: 1rem;"><strong>Result:</strong><br>
-                    Burn: Spain NO, France NO, Brazil NO, Argentina NO<br>
-                    Receive: 1 England YES + some USDC</p>
-            </div>
-
-            <h4>Why This Works</h4>
-            <div class="grid-2">
-                <div class="card">
-                    <h4>Without NegRisk</h4>
-                    <p>Spain YES → Sell on orderbook → USDC → Buy France YES</p>
-                    <p style="color: #991b1b;"><strong>Problem:</strong> Slippage on both trades, dependent on liquidity
-                    </p>
-                </div>
-                <div class="card">
-                    <h4>With NegRisk</h4>
-                    <p>Spain YES → Convert via adapter → France YES</p>
-                    <p style="color: #166534;"><strong>Benefit:</strong> Mathematical conversion, no slippage on
-                        conversion step</p>
-                </div>
-            </div>
-
-            <h4>Order Execution: Two Paths to Buy YES</h4>
-            <p>When a user wants to buy Spain YES, the system can choose the optimal execution path:</p>
-
-            <div class="grid-2">
-                <div class="card">
-                    <h4>Path 1: Direct Orderbook</h4>
-                    <pre style="margin: 0.75rem 0; font-size: 0.8rem;">
-Buy Spain YES directly at 17¢ ask
-
-Simple, but limited by
-YES-side liquidity</pre>
-                </div>
-                <div class="card">
-                    <h4>Path 2: Mint + Sell NO (NegRisk)</h4>
-                    <pre style="margin: 0.75rem 0; font-size: 0.8rem;">
-Step 1: $1 USDC → Mint Spain YES + NO
-Step 2: Sell Spain NO at 83¢ bid
-Step 3: Keep Spain YES
-
-Net cost: $1.00 - $0.83 = 17¢</pre>
-                </div>
-            </div>
-
-            <h4>When Does Path 2 Win?</h4>
-            <p>In efficient markets, both paths yield similar prices. But <strong>slippage differs based on liquidity
-                    depth</strong>:</p>
-
-            <div class="diagram">
-                <div class="diagram-title">Example: Buy 10,000 Spain YES</div>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; padding: 1rem;">
-                    <div>
-                        <p style="font-weight: 600; color: var(--danger); margin-bottom: 0.5rem;">YES Orderbook (thin)
-                        </p>
-                        <pre
-                            style="font-size: 0.8rem; margin: 0; background: #fef2f2; padding: 1rem; border-radius: 6px; border-left: 3px solid var(--danger); color: #b91c1c;">
-17¢: 2,000 shares
-18¢: 3,000 shares
-19¢: 2,500 shares
-20¢: 5,000 shares
-─────────────────
-Avg price: ~18.5¢ ❌</pre>
-                    </div>
-                    <div>
-                        <p style="font-weight: 600; color: var(--success); margin-bottom: 0.5rem;">NO Orderbook (deep)
-                        </p>
-                        <pre
-                            style="font-size: 0.8rem; margin: 0; background: #f0fdf4; padding: 1rem; border-radius: 6px; border-left: 3px solid var(--success); color: #15803d;">
-83¢: 50,000 shares
-82¢: 30,000 shares
-81¢: 20,000 shares
-
-─────────────────
-Avg price: ~17.2¢ ✓</pre>
-                    </div>
-                </div>
-                <p style="text-align: center; margin-top: 0.75rem; font-size: 0.875rem; color: var(--text-muted);">
-                    NO tokens often have deeper liquidity → NegRisk path gives better execution for large orders
+                <span class="box-title">Core Formula</span>
+                <p style="text-align: center; font-size: 1.1rem; margin: 0.5rem 0;">
+                    <strong>1 Spain NO = 1 Brazil NO = 1 France NO = 1 Argentina NO = 1 England NO</strong>
                 </p>
+                <p style="margin-top: 1rem;">Because exactly ONE outcome will win, holding NO on any outcome is mathematically the same
+                   as holding NO on any other outcome — both pay $1 if their outcome loses.</p>
             </div>
 
-            <div class="box box-highlight" style="margin-top: 1.5rem;">
-                <span class="box-title">Order Router Logic</span>
-                <pre style="font-size: 0.8rem; margin: 0.75rem 0;">
-<span class="code-keyword">function</span> getBestExecutionPath(outcome, amount):
-
-    <span class="code-comment">// Calculate cost via direct YES purchase</span>
-    directCost = simulateOrderbookBuy(outcome.YES, amount)
-
-    <span class="code-comment">// Calculate cost via mint + sell NO</span>
-    mintCost = amount * $1.00
-    noProceeds = simulateOrderbookSell(outcome.NO, amount)
-    negRiskCost = mintCost - noProceeds
-
-    <span class="code-comment">// Return cheaper path</span>
-    <span class="code-keyword">return</span> (directCost < negRiskCost) ? <span class="code-value">"orderbook"</span> : <span class="code-value">"negrisk"</span></pre>
-                <p style="font-size: 0.8125rem; color: var(--text-muted); margin-top: 0.75rem;">
-                    This routing happens automatically — users just click "Buy YES" and get best execution.
-                </p>
-            </div>
-
-            <h4>NegRisk Advantages</h4>
-            <div class="grid-2">
-                <div class="card">
-                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;">
-                        <span style="font-size: 1.25rem;">💧</span>
-                        <h4 style="margin: 0;">Unified Liquidity</h4>
-                    </div>
-                    <p>All outcomes share liquidity through NO token equivalence. Instead of fragmenting liquidity
-                        across 48 separate markets, the NegRisk adapter creates a unified liquidity pool.</p>
-                </div>
-                <div class="card">
-                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;">
-                        <span style="font-size: 1.25rem;">💰</span>
-                        <h4 style="margin: 0;">Capital Efficiency</h4>
-                    </div>
-                    <p>Lower collateral requirements through shared backing. Holding N NO tokens only requires $(N-1) in
-                        value, enabling more efficient capital deployment for market makers.</p>
-                </div>
-                <div class="card">
-                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;">
-                        <span style="font-size: 1.25rem;">⚡</span>
-                        <h4 style="margin: 0;">Zero Slippage Conversion</h4>
-                    </div>
-                    <p>Convert between positions mathematically without orderbook dependency. The conversion rate is
-                        deterministic, eliminating slippage on the conversion step itself.</p>
-                </div>
-                <div class="card">
-                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;">
-                        <span style="font-size: 1.25rem;">📊</span>
-                        <h4 style="margin: 0;">Better Price Discovery</h4>
-                    </div>
-                    <p>Arbitrage opportunities keep prices in sync across all outcomes. If sum of YES prices deviates
-                        from 100%, arbitrageurs can profit by converting, maintaining market efficiency.</p>
-                </div>
-                <div class="card">
-                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;">
-                        <span style="font-size: 1.25rem;">📈</span>
-                        <h4 style="margin: 0;">Infinite Scalability</h4>
-                    </div>
-                    <p>Support 48+ outcomes without fragmenting liquidity. Polymarket's World Cup market demonstrates
-                        this with all countries trading against unified liquidity.</p>
-                </div>
-                <div class="card">
-                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;">
-                        <span style="font-size: 1.25rem;">🔓</span>
-                        <h4 style="margin: 0;">No Stuck Inventory</h4>
-                    </div>
-                    <p>Always a mathematical path to exit or convert positions. Users never get stuck with illiquid
-                        tokens — they can always convert to any other outcome.</p>
-                </div>
-            </div>
-
-            <div class="box box-success" style="margin-top: 1.5rem;">
-                <span class="box-title">Why This Matters for Prediction Markets</span>
-                <p>Traditional prediction markets suffer from <strong>liquidity fragmentation</strong> — each outcome
-                    competes for the same limited capital. NegRisk solves this by recognizing that NO tokens are
-                    mathematically linked, creating a "liquidity bridge" between all outcomes.</p>
-                <p style="margin-top: 0.75rem;">This is why Polymarket can offer 48+ country outcomes with $2M+ total
-                    liquidity, while a Grouped Binary approach would struggle to maintain depth across all outcomes.</p>
-            </div>
-
-            <h4>Worked Example: $10,000 Liquidity, 10 Countries</h4>
-            <p>Let's trace what happens when traders make $10 purchases sequentially.</p>
+            <h4>Worked Example: $10,000 Liquidity, 5 Countries</h4>
+            <p>Let's see how NegRisk solves the liquidity crisis that Grouped Binary cannot handle.</p>
 
             <div class="diagram">
                 <div class="diagram-title">Initial Setup</div>
-                <pre
-                    style="font-size: 0.85rem; margin: 0; padding: 1rem; background: #1e293b; color: #e2e8f0; border-radius: 6px;">
-10 Countries: Spain, France, Brazil, Argentina, England,
-              Germany, Italy, Portugal, Netherlands, Belgium
+                <pre style="font-size: 0.85rem; margin: 0; padding: 1rem; background: #1e293b; color: #e2e8f0; border-radius: 6px;">
+5 Countries: Spain, Brazil, France, Argentina, England
 
-Initial price: 10¢ YES / 90¢ NO each (10% probability)
-Market maker: $1,000 per country → 1,000 (YES+NO) pairs each</pre>
+Initial price: 20¢ YES / 80¢ NO each (20% probability)
+Market maker: $2,000 per country → 2,000 (YES+NO) pairs each
+Total liquidity: $10,000</pre>
             </div>
 
-            <h5 style="margin-top: 1.5rem;">Grouped Binary: After 10 Trades (mostly Spain)</h5>
+            <h5 style="margin-top: 1.5rem;">After 5 Trades (mostly Spain YES buys)</h5>
             <div class="table-wrapper">
                 <table>
                     <thead>
@@ -1714,223 +1565,98 @@ Market maker: $1,000 per country → 1,000 (YES+NO) pairs each</pre>
                     <tbody>
                         <tr>
                             <td><strong>Spain</strong></td>
-                            <td style="color: var(--danger);">312</td>
-                            <td>1,000</td>
-                            <td><span class="label label-danger">688 NO stuck!</span></td>
-                        </tr>
-                        <tr>
-                            <td>France</td>
-                            <td>800</td>
-                            <td>1,000</td>
-                            <td><span class="label label-warning">200 excess NO</span></td>
+                            <td style="color: var(--danger);">500</td>
+                            <td>2,000</td>
+                            <td><span class="label label-danger">1,500 NO excess</span></td>
                         </tr>
                         <tr>
                             <td>Brazil</td>
-                            <td>900</td>
-                            <td>1,000</td>
-                            <td><span class="label label-warning">100 excess NO</span></td>
+                            <td>1,600</td>
+                            <td>2,000</td>
+                            <td><span class="label label-warning">400 NO excess</span></td>
                         </tr>
                         <tr>
-                            <td>Others...</td>
-                            <td>1,000</td>
-                            <td>1,000</td>
+                            <td>France</td>
+                            <td>1,800</td>
+                            <td>2,000</td>
+                            <td><span class="label label-warning">200 NO excess</span></td>
+                        </tr>
+                        <tr>
+                            <td>Argentina</td>
+                            <td>2,000</td>
+                            <td>2,000</td>
+                            <td><span class="label label-success">Balanced</span></td>
+                        </tr>
+                        <tr>
+                            <td>England</td>
+                            <td>2,000</td>
+                            <td>2,000</td>
                             <td><span class="label label-success">Balanced</span></td>
                         </tr>
                     </tbody>
                 </table>
             </div>
 
-            <div class="box box-danger" style="margin-top: 1rem;">
-                <span class="box-title">Problem: Spain Liquidity Crisis</span>
-                <pre
-                    style="font-size: 0.85rem; margin: 0.5rem 0; padding: 1rem; background: #450a0a; color: #fecaca; border-radius: 6px;">
-Trade 11: Buy $10 Spain YES...
+            <div class="grid-2" style="margin-top: 1.5rem;">
+                <div class="card" style="border-left: 3px solid #dc2626;">
+                    <h4>❌ Grouped Binary (Nostra)</h4>
+                    <pre style="font-size: 0.8rem; margin: 0.5rem 0; background: #fef2f2; padding: 0.75rem; border-radius: 4px; color: #7f1d1d;">
+Trade 6: Buy $100 more Spain YES...
 
-Only 312 Spain YES left!
-Price jumps: 10¢ → 15¢ → 20¢ (slippage)
-$10 only buys 50 tokens instead of 100
+Only 500 Spain YES left!
+Price jumps: 20¢ → 30¢ → 40¢
 
-Meanwhile: 688 Spain NO tokens sitting useless 💀
-Market maker CANNOT move NO to other countries</pre>
+$100 buys only 250 tokens (not 500)
+
+<span style="color: #991b1b; font-weight: 600;">1,500 Spain NO tokens sit useless 💀
+Cannot move to other countries!</span></pre>
+                </div>
+                <div class="card" style="border-left: 3px solid #16a34a;">
+                    <h4>✅ NegRisk (Polymarket)</h4>
+                    <pre style="font-size: 0.8rem; margin: 0.5rem 0; background: #f0fdf4; padding: 0.75rem; border-radius: 4px; color: #14532d;">
+<span style="color: #15803d;">// Market Maker rebalances:</span>
+Collect 200 NO from each of 5 countries
+= 200 complete "NO sets" (5 tokens each)
+= 200 × $4 = <span style="color: #16a34a; font-weight: 600;">$800 USDC</span>
+
+Mint 400 new Spain YES+NO pairs
+<span style="color: #166534; font-weight: 600;">→ Spain liquidity restored! ✓</span></pre>
+                </div>
             </div>
 
-            <h5 style="margin-top: 1.5rem;">NegRisk: Market Maker Rebalances</h5>
-            <div class="box box-highlight">
-                <span class="box-title">NegRisk Conversion Magic</span>
-                <pre
-                    style="font-size: 0.85rem; margin: 0.5rem 0; padding: 1rem; background: #1e1b4b; color: #c7d2fe; border-radius: 6px;">
-Take 200 excess NO from each country:
-• 200 Spain NO + 200 France NO + 200 Brazil NO + ...
-= 2,000 complete NO sets (one from each country)
-= 10 NO tokens × 200 sets = $1,800 value (10 NO = $9)
-
-Convert → $1,800 USDC returned to market maker!</pre>
-                <p style="margin-top: 0.75rem;">Market maker uses $1,800 to mint 500 new Spain (YES+NO) pairs →
-                    <strong>Spain liquidity restored!</strong>
-                </p>
-            </div>
-
-            <div class="grid-2" style="margin-top: 1rem;">
+            <h5 style="margin-top: 1.5rem;">Result Comparison</h5>
+            <div class="grid-2">
                 <div class="card" style="border-left: 3px solid var(--danger);">
-                    <h4>Grouped Binary Result</h4>
+                    <h4>Grouped Binary</h4>
                     <ul style="font-size: 0.875rem;">
-                        <li>Spain YES remaining: <strong style="color: var(--danger);">312</strong></li>
-                        <li>Slippage: <strong style="color: var(--danger);">HIGH</strong></li>
-                        <li>Excess NO: <strong>STUCK</strong></li>
-                        <li>Next trader pays: <strong>+50% more</strong></li>
+                        <li>Spain YES: <strong style="color: var(--danger);">500</strong> (depleted)</li>
+                        <li>Slippage: <strong style="color: var(--danger);">HIGH (+100%)</strong></li>
+                        <li>Excess NO: <strong>STUCK forever</strong></li>
                     </ul>
                 </div>
                 <div class="card" style="border-left: 3px solid var(--success);">
-                    <h4>NegRisk Result</h4>
+                    <h4>NegRisk</h4>
                     <ul style="font-size: 0.875rem;">
-                        <li>Spain YES remaining: <strong style="color: var(--success);">800</strong></li>
-                        <li>Slippage: <strong style="color: var(--success);">LOW</strong></li>
-                        <li>Excess NO: <strong>CONVERTED</strong></li>
-                        <li>Next trader pays: <strong>Normal price</strong></li>
+                        <li>Spain YES: <strong style="color: var(--success);">1,300</strong> (restored)</li>
+                        <li>Slippage: <strong style="color: var(--success);">LOW (normal)</strong></li>
+                        <li>Excess NO: <strong>CONVERTED to USDC</strong></li>
                     </ul>
                 </div>
             </div>
 
-            <h4 style="margin-top: 2rem;">Who Does the Rebalancing?</h4>
-            <p>The NegRisk adapter is <strong>permissionless</strong> — anyone can call the conversion functions. In
-                practice:</p>
-
-            <div class="grid-2">
-                <div class="card">
-                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;">
-                        <span style="font-size: 1.25rem;">🤖</span>
-                        <h4 style="margin: 0;">Arbitrage Bots</h4>
-                    </div>
-                    <p style="font-size: 0.875rem;">Automated bots monitor price discrepancies. When YES prices sum to
-                        ≠100%, they profit by converting — and rebalance liquidity as a side effect.</p>
-                </div>
-                <div class="card">
-                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;">
-                        <span style="font-size: 1.25rem;">🏦</span>
-                        <h4 style="margin: 0;">Professional Market Makers</h4>
-                    </div>
-                    <p style="font-size: 0.875rem;">Firms like Wintermute, GSR run sophisticated strategies. They
-                        actively rebalance their inventory using NegRisk to maintain tight spreads.</p>
-                </div>
-                <div class="card">
-                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;">
-                        <span style="font-size: 1.25rem;">⚙️</span>
-                        <h4 style="margin: 0;">Protocol Automation</h4>
-                    </div>
-                    <p style="font-size: 0.875rem;">Some protocols run keeper bots that automatically rebalance when
-                        inventory skews beyond thresholds — funded by trading fees.</p>
-                </div>
-                <div class="card">
-                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;">
-                        <span style="font-size: 1.25rem;">💡</span>
-                        <h4 style="margin: 0;">Smart Traders</h4>
-                    </div>
-                    <p style="font-size: 0.875rem;">Any user who spots the opportunity can execute conversions. The
-                        economic incentive (profit from mispricing) ensures someone always does it.</p>
-                </div>
-            </div>
-
-            <div class="box box-highlight" style="margin-top: 1.5rem;">
-                <span class="box-title">Key Insight: Incentive Alignment</span>
-                <p>No single entity needs to be "the market maker." The NegRisk adapter creates <strong>economic
-                        incentives</strong> that naturally attract participants to rebalance liquidity. Arbitrageurs
-                    profit → Liquidity improves → Everyone wins.</p>
-            </div>
-
-            <h4 style="margin-top: 2rem;">How is Conversion Triggered?</h4>
-            <p>NegRisk contracts are <strong>passive</strong> — they don't auto-execute. External actors monitor and
-                trigger when profitable.</p>
-
-            <div class="diagram">
-                <div class="diagram-title">Trigger Flow: Off-chain Monitoring → On-chain Execution</div>
-                <div style="display: flex; flex-direction: column; gap: 0.5rem; padding: 1rem;">
-                    <div class="flow-step" style="background: var(--bg-subtle);">1. Off-chain Bot watches orderbooks via
-                        API/WebSocket</div>
-                    <div class="flow-arrow">↓</div>
-                    <div class="flow-step" style="background: var(--bg-subtle);">2. Calculates: Sum of YES prices = 103%
-                        → Profit opportunity!</div>
-                    <div class="flow-arrow">↓</div>
-                    <div class="flow-step" style="background: var(--bg-subtle);">3. Calls NegRisk contract:
-                        <code>convertPosition()</code>
-                    </div>
-                    <div class="flow-arrow">↓</div>
-                    <div class="flow-step final"
-                        style="background: linear-gradient(135deg, #dcfce7, #bbf7d0); color: #166534;">4. Bot profits +
-                        Liquidity rebalanced (side effect)</div>
-                </div>
-            </div>
-
-            <h5 style="margin-top: 1.5rem;">Example: Arbitrage Bot Logic</h5>
-            <pre style="font-size: 0.8rem; background: #1e293b; color: #e2e8f0; padding: 1.25rem; border-radius: 8px;">
-<span class="code-comment">// Off-chain bot (runs continuously, 24/7)</span>
-<span class="code-keyword">while</span> (true) {
-    <span class="code-comment">// 1. Fetch all YES prices from orderbook</span>
-    <span class="code-keyword">const</span> prices = <span class="code-keyword">await</span> getYesPrices(); <span class="code-comment">// [0.16, 0.14, 0.13, ...]</span>
-    <span class="code-keyword">const</span> sum = prices.reduce((a, b) => a + b); <span class="code-comment">// 1.03 (103%)</span>
-
-    <span class="code-comment">// 2. Check if profitable after gas costs</span>
-    <span class="code-keyword">const</span> profit = sum - <span class="code-value">1.0</span>;  <span class="code-comment">// 0.03 (3%)</span>
-    <span class="code-keyword">const</span> gasCost = <span class="code-value">0.005</span>;     <span class="code-comment">// ~$5 in gas</span>
-
-    <span class="code-keyword">if</span> (profit > gasCost) {
-        <span class="code-comment">// 3. Execute on-chain conversion</span>
-        <span class="code-keyword">await</span> negRiskAdapter.convertPosition(...);
-        console.log(<span class="code-value">"Profit captured!"</span>);
-    }
-
-    <span class="code-keyword">await</span> sleep(<span class="code-value">100</span>); <span class="code-comment">// Check every 100ms</span>
-}</pre>
-
-            <h5 style="margin-top: 1.5rem;">Trigger Mechanisms Comparison</h5>
-            <div class="table-wrapper">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Actor</th>
-                            <th>How They Monitor</th>
-                            <th>When They Trigger</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td><strong>Arbitrage Bots</strong></td>
-                            <td>WebSocket price feeds 24/7</td>
-                            <td>YES sum ≠ 100% (instant, ~100ms)</td>
-                        </tr>
-                        <tr>
-                            <td><strong>Market Makers</strong></td>
-                            <td>Internal inventory tracking</td>
-                            <td>Inventory skew > threshold</td>
-                        </tr>
-                        <tr>
-                            <td><strong>Chainlink Automation</strong></td>
-                            <td>On-chain <code>checkUpkeep()</code></td>
-                            <td>Configurable conditions met</td>
-                        </tr>
-                        <tr>
-                            <td><strong>MEV Searchers</strong></td>
-                            <td>Mempool monitoring</td>
-                            <td>Spot profitable txs to frontrun</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-
             <div class="box box-success" style="margin-top: 1.5rem;">
-                <span class="box-title">Self-Sustaining System</span>
-                <p>The "WHEN" is determined by <strong>profit</strong>, not by the protocol:</p>
-                <ul style="margin-top: 0.5rem;">
-                    <li><strong>Profit exists?</strong> → Someone triggers within milliseconds</li>
-                    <li><strong>No profit?</strong> → No one triggers (no need to rebalance)</li>
-                </ul>
-                <p style="margin-top: 0.75rem;">This is why it's self-sustaining — the system doesn't need to know when.
-                    Economic incentives ensure it happens automatically.</p>
+                <span class="box-title">Why This Works</span>
+                <p><strong>The Magic:</strong> In NegRisk, all NO tokens can be combined and converted back to USDC
+                   (because one of them MUST win). This "unlocks" the stuck inventory and allows market makers to
+                   continuously rebalance liquidity where it's needed most.</p>
+                <p style="margin-top: 0.75rem;"><strong>Result:</strong> Even with many outcomes, liquidity stays healthy
+                   because excess inventory can always flow to where demand is highest.</p>
             </div>
         </section>
 
-        <!-- Section 1.6: NegRisk Architecture -->
+        <!-- Section 2.5: NegRisk Architecture -->
         <section id="negrisk-arch" class="part-2-section">
-            <h3><span class="section-num part-2">2.6</span>NegRisk Architecture</h3>
+            <h3><span class="section-num part-2">2.5</span>NegRisk Architecture</h3>
 
             <div class="box box-highlight">
                 <span class="box-title">Open Source Reference</span>
@@ -2029,9 +1755,9 @@ Convert → $1,800 USDC returned to market maker!</pre>
             </div>
         </section>
 
-        <!-- Section 1.7: Implementation Options -->
+        <!-- Section 2.6: Implementation Options -->
         <section id="implementation-options" class="part-2-section">
-            <h3><span class="section-num part-2">2.7</span>Implementation Options</h3>
+            <h3><span class="section-num part-2">2.6</span>Implementation Options</h3>
 
             <h4>What Nostra Needs to Implement NegRisk</h4>
             <ul class="impl-list">
