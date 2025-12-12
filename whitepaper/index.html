@@ -704,45 +704,27 @@ But: Keeps spread profit!</pre>
         <section id="fee-structure" class="part-1-section">
             <h3><span class="section-num part-1">1.6</span>Fee Structure</h3>
 
-            <h4>Fee Distribution Model</h4>
 
-            <div class="diagram">
-                <div class="diagram-title">Fee Flow</div>
-                <div style="text-align: center; padding: 1.5rem; font-family: var(--font-mono); line-height: 1.8;">
-                    LP provides liquidity<br>↓<br>
-                    Traders can trade<br>↓<br>
-                    Traders pay fees<br>↓<br>
-                    Fees go to LP as yield<br>↓<br>
-                    LP compensated for risk<br>↓<br>
-                    More LPs attracted → More liquidity
-                </div>
-            </div>
 
             <h4>Proposed Fee Structure</h4>
 
-            <pre
-                style="font-size: 0.85rem; padding: 1rem; background: #1e293b; color: #e2e8f0; border-radius: 6px; margin: 1rem 0;">Trade: $100
-Fee: 2% = $2.00
+            <div
+                style="font-size: 0.95rem; padding: 1.5rem; background: #1e293b; color: #e2e8f0; border-radius: 8px; margin: 1rem 0; border: 1px solid #334155;">
+                <div style="margin-bottom: 0.5rem;"><strong style="color: #ffffff;">Trading Fee:</strong> <span
+                        style="color: #4ade80;">0%</span></div>
+                <div style="margin-bottom: 0.5rem;"><strong style="color: #ffffff;">Redemption Fee (on Net
+                        Winnings):</strong> <span style="color: #facc15;">4%</span></div>
+                <div style="color: #f1f5f9; font-size: 0.92em; margin-bottom: 0.5rem;">
+                    <em>Net winnings = total payout minus initial investment (amount spent on buying shares/tickets).</em>
+                </div>
+                <div style="font-family: monospace; color: #94a3b8; margin-top: 0.5rem;">
+                    Distribution:<br>
+                    ├── Platform Fee: 2%<br>
+                    └── Creator Fee: 2%
+                </div>
+            </div>
 
-Distribution:
-├── LP (liquidity provider): $1.50 (75%)
-└── Platform (Nostra):       $0.50 (25%)</pre>
 
-            <h4>LP Yield Calculation</h4>
-
-            <pre
-                style="font-size: 0.85rem; padding: 1rem; background: #0f172a; color: #fef08a; border-radius: 6px; margin: 1rem 0;">LP provides: $1,000 liquidity
-Market volume: $50,000/month
-Fee rate: 2%
-LP share: 75%
-
-LP earnings:
-$50,000 × 2% × 75% = $750/month
-
-LP yield:
-$750 / $1,000 = 75% monthly APY 🔥
-
-(High yield compensates for inventory risk)</pre>
 
             <h4>The Tradeoff</h4>
 
@@ -786,6 +768,103 @@ $750 / $1,000 = 75% monthly APY 🔥
                     <li>Net: significant loss</li>
                 </ul>
                 <p>Fees help but don't guarantee profit.</p>
+            </div>
+
+            <h4>Industry Benchmarks</h4>
+
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Platform</th>
+                            <th>Fee Model</th>
+                            <th>Details</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+
+                        <tr>
+                            <td><strong>Polymarket</strong> (Global/Crypto)</td>
+                            <td>No Trading Fee / Spread</td>
+                            <td>
+                                <ul>
+                                    <li><strong>Trading Fee:</strong> 0% (<a
+                                            href="https://docs.polymarket.com/polymarket-learn/trading/fees"
+                                            target="_blank" rel="noopener noreferrer">Source</a>).</li>
+                                    <li><strong>Net Profit Fee:</strong> 2% (<a
+                                            href="https://changelly.com/blog/what-is-polymarket-and-how-does-it-work/#:~:text=oversees%20its%20activities.-,How%20does%20Polymarket%20make%20money?,What%20chain%20is%20Polymarket%20on?"
+                                            target="_blank" rel="noopener noreferrer">Source</a>).</li>
+                                    <li><strong>Cost:</strong> Bid-ask spread.</li>
+                                    <li><em>Note: CTF structure; users can mint/merge.</em></li>
+                                    <li><strong>Rewards:</strong>
+                                        <ul>
+                                            <li><a href="https://docs.polymarket.com/polymarket-learn/trading/liquidity-rewards"
+                                                    target="_blank" rel="noopener noreferrer">Liquidity Rewards</a>:
+                                                Weekly
+                                                payouts for liquidity providers offering tight spreads.</li>
+                                            <li><a href="https://docs.polymarket.com/polymarket-learn/trading/holding-rewards"
+                                                    target="_blank" rel="noopener noreferrer">Holding Rewards</a>:
+                                                Incentives for users maintaining open positions.</li>
+                                        </ul>
+                                    </li>
+
+                                </ul>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><strong>Polymarket US</strong> (Regulated/Upcoming)</td>
+                            <td>Flat Trading Fee</td>
+                            <td>
+                                <ul>
+                                    <li><strong>Trading Fee:</strong> 0.01% ($0.0001 per share).</li>
+                                    <li><strong>Comparison:</strong> ~100x lower than Kalshi.</li>
+                                    <li><a href="https://www.ingame.com/polymarket-reveals-us-fees/" target="_blank"
+                                            rel="noopener noreferrer">Source</a></li>
+                                </ul>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><strong>Kalshi</strong> (US Regulated)</td>
+                            <td>Maker-Taker</td>
+                            <td>
+                                <ul>
+                                    <li><strong>Taker:</strong> Variable (approx. 1.75% - 7%) based on probability.
+                                        <br><em>Formula: 0.07 × Price × (1-Price)</em>
+                                    </li>
+                                    <li><strong>Maker:</strong> Lower or rebate.</li>
+                                    <li><a href="https://kalshi.com/fee-schedule" target="_blank"
+                                            rel="noopener noreferrer">Source</a></li>
+                                </ul>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="box box-info">
+                <span class="box-title">Reference: Bid-Ask Spread</span>
+                <p style="margin-bottom: 0.5rem;">The <strong>Bid-ask spread</strong> is an implicit cost representing
+                    the
+                    gap between the Price you can Buy at (Ask) and the Price you can Sell at (Bid).</p>
+                <ul>
+                    <li>If you enter a trade and exit immediately, you lose this difference.</li>
+                    <li>This "cost" is captured by Market Makers/Liquidity Providers, not the platform.</li>
+                    <li>In zero-fee markets like Polymarket, this is the primary cost for users.</li>
+                </ul>
+            </div>
+
+            <h4>Fee Distribution Model</h4>
+
+            <div class="diagram">
+                <div class="diagram-title">Fee Flow</div>
+                <div style="text-align: center; padding: 1.5rem; font-family: var(--font-mono); line-height: 1.8;">
+                    LP provides liquidity<br>↓<br>
+                    Traders can trade<br>↓<br>
+                    Traders pay fees<br>↓<br>
+                    Fees go to LP as yield<br>↓<br>
+                    LP compensated for risk<br>↓<br>
+                    More LPs attracted → More liquidity
+                </div>
             </div>
         </section>
 
@@ -1182,7 +1261,7 @@ Only deposit what you can afford to lose.</pre>
         <section id="model-comparison" class="part-2-section">
             <h3><span class="section-num part-2">2.1</span>Market Model Comparison Overview</h3>
             <p>Understanding the two primary market model architectures for prediction markets with multiple outcomes:
-               Nostra's current Grouped Binary approach vs Polymarket's NegRisk Adapter solution.
+                Nostra's current Grouped Binary approach vs Polymarket's NegRisk Adapter solution.
             </p>
 
             <div class="table-wrapper">
@@ -1242,9 +1321,12 @@ Only deposit what you can afford to lose.</pre>
             <div class="box box-highlight">
                 <span class="box-title">Key Takeaway</span>
                 <ul>
-                    <li><strong>Nostra Current:</strong> Grouped Binary - Simple implementation but serious liquidity fragmentation and stuck inventory issues</li>
-                    <li><strong>Polymarket:</strong> Grouped Binary + NegRisk - Same base structure, but solves inventory and liquidity via adapter layer</li>
-                    <li><strong>Core Difference:</strong> NegRisk adapter enables NO token equivalence, converting independent markets into a unified liquidity system</li>
+                    <li><strong>Nostra Current:</strong> Grouped Binary - Simple implementation but serious liquidity
+                        fragmentation and stuck inventory issues</li>
+                    <li><strong>Polymarket:</strong> Grouped Binary + NegRisk - Same base structure, but solves
+                        inventory and liquidity via adapter layer</li>
+                    <li><strong>Core Difference:</strong> NegRisk adapter enables NO token equivalence, converting
+                        independent markets into a unified liquidity system</li>
                 </ul>
             </div>
         </section>
@@ -1325,7 +1407,7 @@ Only deposit what you can afford to lose.</pre>
         <section id="liquidity-problem" class="part-2-section">
             <h3><span class="section-num part-2">2.3</span>Liquidity Problems in Grouped Binary</h3>
             <p>Nostra's Grouped Binary model is simple, but serious liquidity issues arise in multi-outcome markets.
-               Let's examine specific scenarios where problems occur.</p>
+                Let's examine specific scenarios where problems occur.</p>
 
             <h4>📌 Scenario Setup: 2026 World Cup Winner Prediction</h4>
             <div class="box box-highlight">
@@ -1333,15 +1415,21 @@ Only deposit what you can afford to lose.</pre>
                 <p>Creating a "2026 World Cup Winner" market with 5 teams on Nostra:</p>
                 <div class="diagram" style="margin-top: 1rem;">
                     <div class="diagram-content">
-                        <div class="token"><strong>Spain</strong><br>YES/NO<br><span class="token-slot">conditionId_1</span></div>
-                        <div class="token"><strong>Brazil</strong><br>YES/NO<br><span class="token-slot">conditionId_2</span></div>
-                        <div class="token"><strong>France</strong><br>YES/NO<br><span class="token-slot">conditionId_3</span></div>
-                        <div class="token"><strong>Argentina</strong><br>YES/NO<br><span class="token-slot">conditionId_4</span></div>
-                        <div class="token"><strong>England</strong><br>YES/NO<br><span class="token-slot">conditionId_5</span></div>
+                        <div class="token"><strong>Spain</strong><br>YES/NO<br><span
+                                class="token-slot">conditionId_1</span></div>
+                        <div class="token"><strong>Brazil</strong><br>YES/NO<br><span
+                                class="token-slot">conditionId_2</span></div>
+                        <div class="token"><strong>France</strong><br>YES/NO<br><span
+                                class="token-slot">conditionId_3</span></div>
+                        <div class="token"><strong>Argentina</strong><br>YES/NO<br><span
+                                class="token-slot">conditionId_4</span></div>
+                        <div class="token"><strong>England</strong><br>YES/NO<br><span
+                                class="token-slot">conditionId_5</span></div>
                     </div>
                 </div>
                 <p style="margin-top: 1rem; font-size: 0.875rem;">
-                    <strong>Key Point:</strong> Each team is an <strong>independent market</strong> with no connection to others.
+                    <strong>Key Point:</strong> Each team is an <strong>independent market</strong> with no connection
+                    to others.
                 </p>
             </div>
 
@@ -1365,7 +1453,8 @@ Alice's position value: $200 → <span class="code-keyword">$30</span></pre>
             <div class="grid-2">
                 <div class="card" style="border-left: 3px solid #dc2626;">
                     <h4>❌ Nostra (Current)</h4>
-                    <pre style="font-size: 0.75rem; margin: 0.5rem 0; background: #fef2f2; padding: 0.75rem; border-radius: 4px; color: #7f1d1d;">
+                    <pre
+                        style="font-size: 0.75rem; margin: 0.5rem 0; background: #fef2f2; padding: 0.75rem; border-radius: 4px; color: #7f1d1d;">
 <span style="color: #b91c1c;">// Step 1: Sell Spain YES</span>
 Sell: 1,000 tokens @ 3¢
 Amount received: <span style="color: #dc2626; font-weight: 600;">$30</span>
@@ -1380,7 +1469,8 @@ Slippage: +8% → Actual 100 tokens
                 </div>
                 <div class="card" style="border-left: 3px solid #16a34a;">
                     <h4>✅ NegRisk (Polymarket)</h4>
-                    <pre style="font-size: 0.75rem; margin: 0.5rem 0; background: #f0fdf4; padding: 0.75rem; border-radius: 4px; color: #14532d;">
+                    <pre
+                        style="font-size: 0.75rem; margin: 0.5rem 0; background: #f0fdf4; padding: 0.75rem; border-radius: 4px; color: #14532d;">
 <span style="color: #15803d;">// Direct Conversion via Adapter</span>
 Spain YES → France YES
 Mathematical conversion (no slippage)
@@ -1438,19 +1528,44 @@ Expected at 15¢: 66,667 shares
                         </tr>
                     </thead>
                     <tbody>
-                        <tr><td>Spain</td><td>25¢</td><td>~22%</td><td rowspan="5" style="vertical-align: middle; background: #fef2f2; color: #dc2626; font-weight: 600;">Sum: 112¢<br><br>12% Overbook<br>(Arbitrage Opportunity)</td></tr>
-                        <tr><td>Brazil</td><td>23¢</td><td>~20%</td></tr>
-                        <tr><td>France</td><td>22¢</td><td>~19%</td></tr>
-                        <tr><td>Argentina</td><td>21¢</td><td>~18%</td></tr>
-                        <tr><td>England</td><td>21¢</td><td>~18%</td></tr>
+                        <tr>
+                            <td>Spain</td>
+                            <td>25¢</td>
+                            <td>~22%</td>
+                            <td rowspan="5"
+                                style="vertical-align: middle; background: #fef2f2; color: #dc2626; font-weight: 600;">
+                                Sum: 112¢<br><br>12% Overbook<br>(Arbitrage Opportunity)</td>
+                        </tr>
+                        <tr>
+                            <td>Brazil</td>
+                            <td>23¢</td>
+                            <td>~20%</td>
+                        </tr>
+                        <tr>
+                            <td>France</td>
+                            <td>22¢</td>
+                            <td>~19%</td>
+                        </tr>
+                        <tr>
+                            <td>Argentina</td>
+                            <td>21¢</td>
+                            <td>~18%</td>
+                        </tr>
+                        <tr>
+                            <td>England</td>
+                            <td>21¢</td>
+                            <td>~18%</td>
+                        </tr>
                     </tbody>
                 </table>
             </div>
 
             <div class="box box-highlight">
                 <span class="box-title">Why Does This Happen?</span>
-                <p><strong>Nostra:</strong> Each market is independent → No price adjustment mechanism → Relies on manual arbitrage</p>
-                <p><strong>Polymarket:</strong> NegRisk adapter → NO token equivalence → Automatic arbitrage maintains ~100%</p>
+                <p><strong>Nostra:</strong> Each market is independent → No price adjustment mechanism → Relies on
+                    manual arbitrage</p>
+                <p><strong>Polymarket:</strong> NegRisk adapter → NO token equivalence → Automatic arbitrage maintains
+                    ~100%</p>
             </div>
 
             <h4>🔴 Problem 4: LP Inventory Risk</h4>
@@ -1491,22 +1606,28 @@ Even if Charlie wants to hedge with France NO:
                     </thead>
                     <tbody>
                         <tr>
-                            <td><strong>Position Conversion</strong><br><span style="font-size: 0.75rem; color: var(--text-muted);">Spain → France</span></td>
+                            <td><strong>Position Conversion</strong><br><span
+                                    style="font-size: 0.75rem; color: var(--text-muted);">Spain → France</span></td>
                             <td><span class="label label-danger">Impossible</span><br>Sell → Buy (double slippage)</td>
-                            <td><span class="label label-success">Possible</span><br>Mathematical conversion (0% slippage)</td>
+                            <td><span class="label label-success">Possible</span><br>Mathematical conversion (0%
+                                slippage)</td>
                         </tr>
                         <tr>
-                            <td><strong>Large Orders</strong><br><span style="font-size: 0.75rem; color: var(--text-muted);">$10K market order</span></td>
+                            <td><strong>Large Orders</strong><br><span
+                                    style="font-size: 0.75rem; color: var(--text-muted);">$10K market order</span></td>
                             <td><span class="label label-danger">10-20% slippage</span><br>Fragmented liquidity</td>
                             <td><span class="label label-success">1-3% slippage</span><br>Unified liquidity</td>
                         </tr>
                         <tr>
-                            <td><strong>Price Consistency</strong><br><span style="font-size: 0.75rem; color: var(--text-muted);">Σ YES = ?</span></td>
+                            <td><strong>Price Consistency</strong><br><span
+                                    style="font-size: 0.75rem; color: var(--text-muted);">Σ YES = ?</span></td>
                             <td><span class="label label-danger">90-120%</span><br>Relies on manual arbitrage</td>
                             <td><span class="label label-success">~100%</span><br>Automatic arbitrage</td>
                         </tr>
                         <tr>
-                            <td><strong>LP Hedging</strong><br><span style="font-size: 0.75rem; color: var(--text-muted);">Inventory rebalancing</span></td>
+                            <td><strong>LP Hedging</strong><br><span
+                                    style="font-size: 0.75rem; color: var(--text-muted);">Inventory rebalancing</span>
+                            </td>
                             <td><span class="label label-danger">High cost</span><br>Requires double trade</td>
                             <td><span class="label label-success">Low cost</span><br>Direct conversion possible</td>
                         </tr>
@@ -1527,15 +1648,17 @@ Even if Charlie wants to hedge with France NO:
         <!-- Section 2.4: NegRisk Adapter -->
         <section id="negrisk" class="part-2-section">
             <h3><span class="section-num part-2">2.4</span>NegRisk Adapter (Polymarket Approach)</h3>
-            <p>The key insight: <strong>all NO tokens from a grouped market have equal value</strong>. This enables liquidity rebalancing.</p>
+            <p>The key insight: <strong>all NO tokens from a grouped market have equal value</strong>. This enables
+                liquidity rebalancing.</p>
 
             <div class="box box-highlight">
                 <span class="box-title">Core Formula</span>
                 <p style="text-align: center; font-size: 1.1rem; margin: 0.5rem 0;">
                     <strong>1 Spain NO = 1 Brazil NO = 1 France NO = 1 Argentina NO = 1 England NO</strong>
                 </p>
-                <p style="margin-top: 1rem;">Because exactly ONE outcome will win, holding NO on any outcome is mathematically the same
-                   as holding NO on any other outcome — both pay $1 if their outcome loses.</p>
+                <p style="margin-top: 1rem;">Because exactly ONE outcome will win, holding NO on any outcome is
+                    mathematically the same
+                    as holding NO on any other outcome — both pay $1 if their outcome loses.</p>
             </div>
 
             <h4>Worked Example: $10,000 Liquidity, 5 Countries</h4>
@@ -1543,7 +1666,8 @@ Even if Charlie wants to hedge with France NO:
 
             <div class="diagram">
                 <div class="diagram-title">Initial Setup</div>
-                <pre style="font-size: 0.85rem; margin: 0; padding: 1rem; background: #1e293b; color: #e2e8f0; border-radius: 6px;">
+                <pre
+                    style="font-size: 0.85rem; margin: 0; padding: 1rem; background: #1e293b; color: #e2e8f0; border-radius: 6px;">
 5 Countries: Spain, Brazil, France, Argentina, England
 
 Initial price: 20¢ YES / 80¢ NO each (20% probability)
@@ -1600,7 +1724,8 @@ Total liquidity: $10,000</pre>
             <div class="grid-2" style="margin-top: 1.5rem;">
                 <div class="card" style="border-left: 3px solid #dc2626;">
                     <h4>❌ Grouped Binary (Nostra)</h4>
-                    <pre style="font-size: 0.8rem; margin: 0.5rem 0; background: #fef2f2; padding: 0.75rem; border-radius: 4px; color: #7f1d1d;">
+                    <pre
+                        style="font-size: 0.8rem; margin: 0.5rem 0; background: #fef2f2; padding: 0.75rem; border-radius: 4px; color: #7f1d1d;">
 Trade 6: Buy $100 more Spain YES...
 
 Only 500 Spain YES left!
@@ -1613,7 +1738,8 @@ Cannot move to other countries!</span></pre>
                 </div>
                 <div class="card" style="border-left: 3px solid #16a34a;">
                     <h4>✅ NegRisk (Polymarket)</h4>
-                    <pre style="font-size: 0.8rem; margin: 0.5rem 0; background: #f0fdf4; padding: 0.75rem; border-radius: 4px; color: #14532d;">
+                    <pre
+                        style="font-size: 0.8rem; margin: 0.5rem 0; background: #f0fdf4; padding: 0.75rem; border-radius: 4px; color: #14532d;">
 <span style="color: #15803d;">// Market Maker rebalances:</span>
 Collect 200 NO from each of 5 countries
 = 200 complete "NO sets" (5 tokens each)
@@ -1647,10 +1773,11 @@ Mint 400 new Spain YES+NO pairs
             <div class="box box-success" style="margin-top: 1.5rem;">
                 <span class="box-title">Why This Works</span>
                 <p><strong>The Magic:</strong> In NegRisk, all NO tokens can be combined and converted back to USDC
-                   (because one of them MUST win). This "unlocks" the stuck inventory and allows market makers to
-                   continuously rebalance liquidity where it's needed most.</p>
-                <p style="margin-top: 0.75rem;"><strong>Result:</strong> Even with many outcomes, liquidity stays healthy
-                   because excess inventory can always flow to where demand is highest.</p>
+                    (because one of them MUST win). This "unlocks" the stuck inventory and allows market makers to
+                    continuously rebalance liquidity where it's needed most.</p>
+                <p style="margin-top: 0.75rem;"><strong>Result:</strong> Even with many outcomes, liquidity stays
+                    healthy
+                    because excess inventory can always flow to where demand is highest.</p>
             </div>
         </section>
 

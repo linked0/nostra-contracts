@@ -700,45 +700,25 @@ MM은 Chiefs YES 매도, Mahomes YES 매수 (헤지)
         <section id="fee-structure" class="part-1-section">
             <h3><span class="section-num part-1">1.6</span>수수료 구조</h3>
 
-            <h4>수수료 분배 모델</h4>
 
-            <div class="diagram">
-                <div class="diagram-title">수수료 흐름</div>
-                <div style="text-align: center; padding: 1.5rem; font-family: var(--font-mono); line-height: 1.8;">
-                    LP가 유동성 공급<br>↓<br>
-                    트레이더가 거래 가능<br>↓<br>
-                    트레이더가 수수료 지불<br>↓<br>
-                    수수료가 LP에게 수익으로 전달<br>↓<br>
-                    LP가 위험에 대해 보상받음<br>↓<br>
-                    더 많은 LP 유입 → 더 많은 유동성
-                </div>
-            </div>
 
             <h4>제안된 수수료 구조</h4>
 
-            <pre
-                style="font-size: 0.85rem; padding: 1rem; background: #1e293b; color: #e2e8f0; border-radius: 6px; margin: 1rem 0;">거래: 
-수수료: 2% = .00
-
-분배:
-├── LP (유동성 공급자): .50 (75%)
-└── 플랫폼 (Nostra):    /opt/homebrew/bin/zsh.50 (25%)</pre>
-
-            <h4>LP 수익률 계산</h4>
-
-            <pre
-                style="font-size: 0.85rem; padding: 1rem; background: #0f172a; color: #fef08a; border-radius: 6px; margin: 1rem 0;">LP 공급: ,000 유동성
-시장 거래량: 월 ,000
-수수료율: 2%
-LP 지분: 75%
-
-LP 수익:
-,000 × 2% × 75% = /월
-
-LP 수익률:
- / ,000 = 월 75% APY 🔥
-
-(높은 수익률은 재고 위험을 보상함)</pre>
+            <div
+                style="font-size: 0.95rem; padding: 1.5rem; background: #1e293b; color: #e2e8f0; border-radius: 8px; margin: 1rem 0; border: 1px solid #334155;">
+                <div style="margin-bottom: 0.5rem;"><strong style="color: #ffffff;">거래 수수료:</strong> <span
+                        style="color: #4ade80;">0%</span>
+                </div>
+                <div style="margin-bottom: 0.5rem;">
+                    <strong style="color: #ffffff;">상환 수수료 (순이익 기준<span style="color: #94a3b8; font-size: 0.95em;">&nbsp;— 예: 상금에서 초기 투자금 차감</span>):</strong>
+                    <span style="color: #facc15;">4%</span>
+                </div>
+                <div style="font-family: monospace; color: #94a3b8; margin-top: 0.5rem;">
+                    분배:<br>
+                    ├── 플랫폼 수수료: 2%<br>
+                    └── 크리에이터 수수료: 2%
+                </div>
+            </div>
 
             <h4>트레이드오프</h4>
 
@@ -783,6 +763,101 @@ LP 수익률:
                 </ul>
                 <p>수수료는 도움이 되지만 수익을 보장하지는 않습니다.</p>
             </div>
+
+            <h4>업계 벤치마크 (Industry Benchmarks)</h4>
+
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>플랫폼</th>
+                            <th>수수료 모델</th>
+                            <th>상세 내용</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+
+                        <tr>
+                            <td><strong>Polymarket</strong> (글로벌/크립토)</td>
+                            <td>거래 수수료 없음 / 스프레드</td>
+                            <td>
+                                <ul>
+                                    <li><strong>거래 수수료:</strong> 0% (<a
+                                            href="https://docs.polymarket.com/polymarket-learn/trading/fees"
+                                            target="_blank" rel="noopener noreferrer">출처</a>).</li>
+                                    <li><strong>순이익 수수료:</strong> 2% (<a
+                                            href="https://changelly.com/blog/what-is-polymarket-and-how-does-it-work/#:~:text=oversees%20its%20activities.-,How%20does%20Polymarket%20make%20money?,What%20chain%20is%20Polymarket%20on?"
+                                            target="_blank" rel="noopener noreferrer">출처</a>).</li>
+                                    <li><strong>비용:</strong> 매수-매도 스프레드.</li>
+                                    <li><em>참고: CTF 구조; 사용자가 발행/병합 가능.</em></li>
+                                    <li><strong>보상 (Rewards):</strong>
+                                        <ul>
+                                            <li><a href="https://docs.polymarket.com/polymarket-learn/trading/liquidity-rewards"
+                                                    target="_blank" rel="noopener noreferrer">유동성 보상 (Liquidity
+                                                    Rewards)</a>: 좁은 스프레드를 제공하는 유동성 공급자에게 주간 보상 지급.</li>
+                                            <li><a href="https://docs.polymarket.com/polymarket-learn/trading/holding-rewards"
+                                                    target="_blank" rel="noopener noreferrer">보유 보상 (Holding
+                                                    Rewards)</a>:
+                                                포지션을 보유한 사용자에게 인센티브 제공.</li>
+                                        </ul>
+                                    </li>
+
+                                </ul>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><strong>Polymarket US</strong> (규제/출시 예정)</td>
+                            <td>고정 거래 수수료</td>
+                            <td>
+                                <ul>
+                                    <li><strong>거래 수수료:</strong> 0.01% (주당 $0.0001).</li>
+                                    <li><strong>비교:</strong> Kalshi보다 약 100배 저렴.</li>
+                                    <li><a href="https://www.ingame.com/polymarket-reveals-us-fees/" target="_blank"
+                                            rel="noopener noreferrer">출처</a></li>
+                                </ul>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><strong>Kalshi</strong> (미국 규제 준수)</td>
+                            <td>메이커-테이커 (Maker-Taker)</td>
+                            <td>
+                                <ul>
+                                    <li><strong>테이커:</strong> 확률에 따라 가변적 (약 1.75% - 7%). <br><em>공식: 0.07 × 가격 ×
+                                            (1-가격)</em></li>
+                                    <li><strong>메이커:</strong> 더 낮거나 리베이트 제공.</li>
+                                    <li><a href="https://kalshi.com/fee-schedule" target="_blank"
+                                            rel="noopener noreferrer">출처</a></li>
+                                </ul>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="box box-info">
+                <span class="box-title">참고: 매수-매도 스프레드 (Bid-Ask Spread)</span>
+                <p style="margin-bottom: 0.5rem;"><strong>매수-매도 스프레드</strong>는 매수 가격(Ask)과 매도 가격(Bid)의 차이로 발생하는
+                    암묵적인 거래 비용입니다.</p>
+                <ul>
+                    <li>거래에 진입하자마자 즉시 청산하면 이 차이만큼 손실을 보게 됩니다.</li>
+                    <li>이 비용은 플랫폼이 아닌 마켓 메이커(MM)나 유동성 공급자가 가져갑니다.</li>
+                    <li>Polymarket과 같은 수수료 0% 시장에서는 이것이 사용자가 부담하는 주요 비용입니다.</li>
+                </ul>
+            </div>
+
+            <h4>수수료 분배 모델</h4>
+
+            <div class="diagram">
+                <div class="diagram-title">수수료 흐름</div>
+                <div style="text-align: center; padding: 1.5rem; font-family: var(--font-mono); line-height: 1.8;">
+                    LP가 유동성 공급<br>↓<br>
+                    트레이더가 거래 가능<br>↓<br>
+                    트레이더가 수수료 지불<br>↓<br>
+                    수수료가 LP에게 수익으로 전달<br>↓<br>
+                    LP가 위험에 대해 보상받음<br>↓<br>
+                    더 많은 LP 유입 → 더 많은 유동성
+                </div>
+            </div>
         </section>
 
         <!-- Section 1.7: AMM vs Order Book -->
@@ -818,7 +893,8 @@ LP 수익률:
 
             <div class="box box-highlight">
                 <span class="box-title">예측 시장에는 오더북이 더 낫습니다</span>
-                <p>예측 시장의 결과는 0 또는 1입니다. AMM은 가격이 0이나 1에 가까워질수록 유동성을 제공하기 위해 막대한 자본을 요구합니다 (LSR - Logarithmic Scoring Rule 등 복잡한 수학 필요).</p>
+                <p>예측 시장의 결과는 0 또는 1입니다. AMM은 가격이 0이나 1에 가까워질수록 유동성을 제공하기 위해 막대한 자본을 요구합니다 (LSR - Logarithmic Scoring
+                    Rule 등 복잡한 수학 필요).</p>
                 <p>오더북은 사용자가 원하는 가격에 정확히 주문을 낼 수 있어 가격 발견이 더 효율적입니다.</p>
             </div>
         </section>
@@ -878,7 +954,7 @@ LP 수익률:
         <section id="model-comparison" class="part-2-section">
             <h3><span class="section-num part-2">2.1</span>시장 모델 비교 개요</h3>
             <p>다중 결과 예측 시장을 위한 두 가지 주요 시장 모델 아키텍처를 이해합니다:
-               Nostra의 현재 Grouped Binary 방식 vs Polymarket의 NegRisk 어댑터 솔루션.
+                Nostra의 현재 Grouped Binary 방식 vs Polymarket의 NegRisk 어댑터 솔루션.
             </p>
 
             <div class="table-wrapper">
@@ -939,7 +1015,8 @@ LP 수익률:
                 <span class="box-title">핵심 요점</span>
                 <ul>
                     <li><strong>Nostra 현재:</strong> Grouped Binary - 단순한 구현이지만 심각한 유동성 파편화와 재고 고립 문제</li>
-                    <li><strong>Polymarket:</strong> Grouped Binary + NegRisk - 동일한 기본 구조이지만, 어댑터 레이어로 재고와 유동성 문제 해결</li>
+                    <li><strong>Polymarket:</strong> Grouped Binary + NegRisk - 동일한 기본 구조이지만, 어댑터 레이어로 재고와 유동성 문제 해결
+                    </li>
                     <li><strong>핵심 차이점:</strong> NegRisk 어댑터는 NO 토큰 동등성을 가능하게 하여, 독립적인 시장들을 통합 유동성 시스템으로 변환</li>
                 </ul>
             </div>
@@ -1018,7 +1095,7 @@ LP 수익률:
         <section id="liquidity-problem" class="part-2-section">
             <h3><span class="section-num part-2">2.3</span>Nostra의 유동성 문제 상황</h3>
             <p>Nostra의 Grouped Binary 모델은 단순하지만, 다중 결과 마켓에서 심각한 유동성 문제가 발생합니다.
-               실제 시나리오를 통해 어떤 상황에서 문제가 생기는지 살펴보겠습니다.</p>
+                실제 시나리오를 통해 어떤 상황에서 문제가 생기는지 살펴보겠습니다.</p>
 
             <h4>📌 시나리오 설정: 2026 월드컵 우승팀 예측</h4>
             <div class="box box-highlight">
@@ -1026,11 +1103,16 @@ LP 수익률:
                 <p>Nostra에서 "2026 월드컵 우승팀" 마켓을 5개 팀으로 생성:</p>
                 <div class="diagram" style="margin-top: 1rem;">
                     <div class="diagram-content">
-                        <div class="token"><strong>Spain</strong><br>YES/NO<br><span class="token-slot">conditionId_1</span></div>
-                        <div class="token"><strong>Brazil</strong><br>YES/NO<br><span class="token-slot">conditionId_2</span></div>
-                        <div class="token"><strong>France</strong><br>YES/NO<br><span class="token-slot">conditionId_3</span></div>
-                        <div class="token"><strong>Argentina</strong><br>YES/NO<br><span class="token-slot">conditionId_4</span></div>
-                        <div class="token"><strong>England</strong><br>YES/NO<br><span class="token-slot">conditionId_5</span></div>
+                        <div class="token"><strong>Spain</strong><br>YES/NO<br><span
+                                class="token-slot">conditionId_1</span></div>
+                        <div class="token"><strong>Brazil</strong><br>YES/NO<br><span
+                                class="token-slot">conditionId_2</span></div>
+                        <div class="token"><strong>France</strong><br>YES/NO<br><span
+                                class="token-slot">conditionId_3</span></div>
+                        <div class="token"><strong>Argentina</strong><br>YES/NO<br><span
+                                class="token-slot">conditionId_4</span></div>
+                        <div class="token"><strong>England</strong><br>YES/NO<br><span
+                                class="token-slot">conditionId_5</span></div>
                     </div>
                 </div>
                 <p style="margin-top: 1rem; font-size: 0.875rem;">
@@ -1058,7 +1140,8 @@ Alice의 포지션 가치: $200 → <span class="code-keyword">$30</span></pre>
             <div class="grid-2">
                 <div class="card" style="border-left: 3px solid #dc2626;">
                     <h4>❌ Nostra (현재)</h4>
-                    <pre style="font-size: 0.75rem; margin: 0.5rem 0; background: #fef2f2; padding: 0.75rem; border-radius: 4px; color: #7f1d1d;">
+                    <pre
+                        style="font-size: 0.75rem; margin: 0.5rem 0; background: #fef2f2; padding: 0.75rem; border-radius: 4px; color: #7f1d1d;">
 <span style="color: #b91c1c;">// Step 1: Spain YES 매도</span>
 매도: 1,000개 @ 3¢
 받는 금액: <span style="color: #dc2626; font-weight: 600;">$30</span>
@@ -1073,7 +1156,8 @@ France YES 가격: 25¢
                 </div>
                 <div class="card" style="border-left: 3px solid #16a34a;">
                     <h4>✅ NegRisk (Polymarket)</h4>
-                    <pre style="font-size: 0.75rem; margin: 0.5rem 0; background: #f0fdf4; padding: 0.75rem; border-radius: 4px; color: #14532d;">
+                    <pre
+                        style="font-size: 0.75rem; margin: 0.5rem 0; background: #f0fdf4; padding: 0.75rem; border-radius: 4px; color: #14532d;">
 <span style="color: #15803d;">// Direct Conversion via Adapter</span>
 Spain YES → France YES
 수학적 변환 (슬리피지 없음)
@@ -1131,11 +1215,34 @@ $3,570 @ 19¢ = 18,789 shares
                         </tr>
                     </thead>
                     <tbody>
-                        <tr><td>Spain</td><td>25¢</td><td>~22%</td><td rowspan="5" style="vertical-align: middle; background: #fef2f2; color: #dc2626; font-weight: 600;">합계: 112¢<br><br>12% 오버북<br>(Arbitrage 기회)</td></tr>
-                        <tr><td>Brazil</td><td>23¢</td><td>~20%</td></tr>
-                        <tr><td>France</td><td>22¢</td><td>~19%</td></tr>
-                        <tr><td>Argentina</td><td>21¢</td><td>~18%</td></tr>
-                        <tr><td>England</td><td>21¢</td><td>~18%</td></tr>
+                        <tr>
+                            <td>Spain</td>
+                            <td>25¢</td>
+                            <td>~22%</td>
+                            <td rowspan="5"
+                                style="vertical-align: middle; background: #fef2f2; color: #dc2626; font-weight: 600;">
+                                합계: 112¢<br><br>12% 오버북<br>(Arbitrage 기회)</td>
+                        </tr>
+                        <tr>
+                            <td>Brazil</td>
+                            <td>23¢</td>
+                            <td>~20%</td>
+                        </tr>
+                        <tr>
+                            <td>France</td>
+                            <td>22¢</td>
+                            <td>~19%</td>
+                        </tr>
+                        <tr>
+                            <td>Argentina</td>
+                            <td>21¢</td>
+                            <td>~18%</td>
+                        </tr>
+                        <tr>
+                            <td>England</td>
+                            <td>21¢</td>
+                            <td>~18%</td>
+                        </tr>
                     </tbody>
                 </table>
             </div>
@@ -1184,22 +1291,26 @@ Charlie가 France NO로 헤지하고 싶어도:
                     </thead>
                     <tbody>
                         <tr>
-                            <td><strong>포지션 전환</strong><br><span style="font-size: 0.75rem; color: var(--text-muted);">Spain → France</span></td>
+                            <td><strong>포지션 전환</strong><br><span
+                                    style="font-size: 0.75rem; color: var(--text-muted);">Spain → France</span></td>
                             <td><span class="label label-danger">불가능</span><br>매도 → 매수 (이중 슬리피지)</td>
                             <td><span class="label label-success">가능</span><br>수학적 변환 (0% 슬리피지)</td>
                         </tr>
                         <tr>
-                            <td><strong>대량 주문</strong><br><span style="font-size: 0.75rem; color: var(--text-muted);">$10K 시장가</span></td>
+                            <td><strong>대량 주문</strong><br><span
+                                    style="font-size: 0.75rem; color: var(--text-muted);">$10K 시장가</span></td>
                             <td><span class="label label-danger">10-20% 슬리피지</span><br>분산된 유동성</td>
                             <td><span class="label label-success">1-3% 슬리피지</span><br>통합 유동성</td>
                         </tr>
                         <tr>
-                            <td><strong>가격 일관성</strong><br><span style="font-size: 0.75rem; color: var(--text-muted);">Σ YES = ?</span></td>
+                            <td><strong>가격 일관성</strong><br><span style="font-size: 0.75rem; color: var(--text-muted);">Σ
+                                    YES = ?</span></td>
                             <td><span class="label label-danger">90-120%</span><br>수동 차익거래 의존</td>
                             <td><span class="label label-success">~100%</span><br>자동 차익거래</td>
                         </tr>
                         <tr>
-                            <td><strong>LP 헤지</strong><br><span style="font-size: 0.75rem; color: var(--text-muted);">재고 리밸런싱</span></td>
+                            <td><strong>LP 헤지</strong><br><span style="font-size: 0.75rem; color: var(--text-muted);">재고
+                                    리밸런싱</span></td>
                             <td><span class="label label-danger">고비용</span><br>이중 거래 필요</td>
                             <td><span class="label label-success">저비용</span><br>직접 변환 가능</td>
                         </tr>
@@ -1233,7 +1344,8 @@ Charlie가 France NO로 헤지하고 싶어도:
 
             <div class="diagram">
                 <div class="diagram-title">초기 설정</div>
-                <pre style="font-size: 0.85rem; margin: 0; padding: 1rem; background: #1e293b; color: #e2e8f0; border-radius: 6px;">
+                <pre
+                    style="font-size: 0.85rem; margin: 0; padding: 1rem; background: #1e293b; color: #e2e8f0; border-radius: 6px;">
 5개 국가: Spain, Brazil, France, Argentina, England
 
 초기 가격: 각 20¢ YES / 80¢ NO (20% 확률)
@@ -1243,7 +1355,8 @@ Charlie가 France NO로 헤지하고 싶어도:
 
             <div class="table-wrapper" style="margin-top: 1.5rem;">
                 <table>
-                    <caption style="text-align: left; margin-bottom: 0.5rem; font-weight: 600;">5번의 거래 후 (대부분 Spain 매수)</caption>
+                    <caption style="text-align: left; margin-bottom: 0.5rem; font-weight: 600;">5번의 거래 후 (대부분 Spain 매수)
+                    </caption>
                     <thead>
                         <tr>
                             <th>국가</th>
@@ -1290,7 +1403,8 @@ Charlie가 France NO로 헤지하고 싶어도:
             <div class="grid-2" style="margin-top: 1.5rem;">
                 <div class="card" style="border-left: 3px solid #dc2626;">
                     <h4>❌ Grouped Binary</h4>
-                    <pre style="font-size: 0.75rem; margin: 0.5rem 0; background: #fef2f2; padding: 0.75rem; border-radius: 4px; color: #7f1d1d;">
+                    <pre
+                        style="font-size: 0.75rem; margin: 0.5rem 0; background: #fef2f2; padding: 0.75rem; border-radius: 4px; color: #7f1d1d;">
 <span style="color: #b91c1c;">// 거래 6: Spain YES $100 추가 매수</span>
 Spain YES 500개만 남음
 가격 급등: 20¢ → 30¢ → 40¢
@@ -1300,7 +1414,8 @@ Spain YES 500개만 남음
                 </div>
                 <div class="card" style="border-left: 3px solid #16a34a;">
                     <h4>✅ NegRisk</h4>
-                    <pre style="font-size: 0.75rem; margin: 0.5rem 0; background: #f0fdf4; padding: 0.75rem; border-radius: 4px; color: #14532d;">
+                    <pre
+                        style="font-size: 0.75rem; margin: 0.5rem 0; background: #f0fdf4; padding: 0.75rem; border-radius: 4px; color: #14532d;">
 <span style="color: #15803d;">// 마켓 메이커가 과잉 NO를 변환</span>
 5개 국가에서 각 200 NO 수집
 = 200개의 완전한 NO 세트 (5개 토큰씩)
@@ -1332,7 +1447,8 @@ Spain YES 500개만 남음
 
             <div class="box box-success" style="margin-top: 1.5rem;">
                 <span class="box-title">왜 작동하는가?</span>
-                <p><strong>핵심:</strong> NegRisk에서는 모든 NO 토큰을 결합하여 USDC로 환원할 수 있습니다 (그 중 하나는 반드시 승리하므로). 이것이 "고립된" 재고를 해제하여 마켓 메이커가 지속적으로 유동성을 가장 필요한 곳으로 재배치할 수 있게 합니다.</p>
+                <p><strong>핵심:</strong> NegRisk에서는 모든 NO 토큰을 결합하여 USDC로 환원할 수 있습니다 (그 중 하나는 반드시 승리하므로). 이것이 "고립된" 재고를
+                    해제하여 마켓 메이커가 지속적으로 유동성을 가장 필요한 곳으로 재배치할 수 있게 합니다.</p>
             </div>
         </section>
 
@@ -1927,7 +2043,7 @@ ETH/USD: 0xF0d50568e3A7e8259E16663972b11910F89BD8e7</pre>
                     <ul style="font-size: 0.875rem;">
                         <li>PriceFeedResolver 컨트랙트 배포</li>
                         <li>BTC/USD, ETH/USD 피드로 테스트</li>
-                        <li>"BTC가  넘을까?" 시장 생성</li>
+                        <li>"BTC가 넘을까?" 시장 생성</li>
                         <li>프론트엔드 해결 페이지 업데이트</li>
                     </ul>
                 </div>
