@@ -66,6 +66,13 @@
                         <li><a href="#roadmap">3.8 Implementation Roadmap</a></li>
                     </ul>
                 </div>
+                <div>
+                    <div class="toc-section-title">Part 4: Multi-Chain Strategy</div>
+                    <ul>
+                        <li><a href="#deployment-networks">4.1 Deployment Networks</a></li>
+                        <li><a href="#bridging-strategy">4.2 Bridging Strategy (CCIP)</a></li>
+                    </ul>
+                </div>
             </div>
         </nav>
 
@@ -715,7 +722,8 @@ But: Keeps spread profit!</pre>
                 <div style="margin-bottom: 0.5rem;"><strong style="color: #ffffff;">Redemption Fee (on Net
                         Winnings):</strong> <span style="color: #facc15;">4%</span></div>
                 <div style="color: #f1f5f9; font-size: 0.92em; margin-bottom: 0.5rem;">
-                    <em>Net winnings = total payout minus initial investment (amount spent on buying shares/tickets).</em>
+                    <em>Net winnings = total payout minus initial investment (amount spent on buying
+                        shares/tickets).</em>
                 </div>
                 <div style="font-family: monospace; color: #94a3b8; margin-top: 0.5rem;">
                     Distribution:<br>
@@ -2885,6 +2893,249 @@ ETH/USD: 0xF0d50568e3A7e8259E16663972b11910F89BD8e7</pre>
                 <p style="margin-top: 1rem;"><strong>Recommendation:</strong> Start with Price Feed markets (free,
                     simple), add Automation for auto-resolve, then expand to Functions as needed.</p>
             </div>
+        </section>
+
+        <!-- PART 4: MULTI-CHAIN STRATEGY -->
+        <div class="part-divider">
+            <h2>Part 4: Multi-Chain Strategy</h2>
+            <span class="part-subtitle">Scaling & Interoperability</span>
+        </div>
+
+        <!-- Section 4.1: Deployment Networks -->
+        <section id="deployment-networks" class="part-4-section">
+            <h3><span class="section-num part-4">4.1</span>Deployment Networks</h3>
+
+            <h4>Strategic Priorities</h4>
+            <div class="grid-3">
+                <div class="card">
+                    <h4>Low Transaction Fees</h4>
+                    <p>Prediction markets require frequent interaction (buying, selling, claiming). Gas must be &lt;
+                        $0.01.</p>
+                </div>
+                <div class="card">
+                    <h4>High Liquidity</h4>
+                    <p>Deployment on a chain with existing USDC liquidity reduces friction for user onboarding.</p>
+                </div>
+                <div class="card">
+                    <h4>EVM Compatibility</h4>
+                    <p>Essential for supporting existing tooling, wallets (MetaMask), and Chainlink services.</p>
+                </div>
+            </div>
+
+            <div class="box box-warning" style="margin-top: 2rem;">
+                <span class="box-title">Why Single Chain Deployment? (Liquidity Concentration)</span>
+                <p>We should <strong>NOT</strong> deploy market contracts on multiple chains simultaneously. Prediction
+                    markets rely heavily on liquidity depth.</p>
+                <ul>
+                    <li><strong>Fragmentation:</strong> Splitting liquidity across Polygon and BSC makes order books
+                        thin on both.</li>
+                    <li><strong>User Experience:</strong> Bettors should meet in one place to match orders efficiently.
+                    </li>
+                    <li><strong>Operation:</strong> We maintain the "Core" on one chain, and use bridges (CCIP) to let
+                        users from other chains participate.</li>
+                </ul>
+            </div>
+
+            <h4>The Criticality of Gas Fees in Batch Processing</h4>
+            <p>For optimal UX, our server will likely <strong>batch process</strong> user actions (e.g., matching 50
+                orders in one transaction) to provide instant confirmation and gasless experience for users. This makes
+                gas fees a direct <strong>operating cost</strong> for the platform.</p>
+
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Scenario</th>
+                            <th>Cost on Polygon/BSC (~$0.01)</th>
+                            <th>Cost on Arbitrum/Op (~$0.15)</th>
+                            <th>Impact</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>1 Single Trade</td>
+                            <td>$0.01</td>
+                            <td>$0.15</td>
+                            <td>Manageable</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Daily Batch (10,000 txs)</strong></td>
+                            <td><strong>$100 / day</strong></td>
+                            <td><strong>$1,500 / day</strong></td>
+                            <td><span style="color: var(--danger);">Critical Difference</span></td>
+                        </tr>
+                        <tr>
+                            <td>Monthly Cost</td>
+                            <td>$3,000</td>
+                            <td>$45,000</td>
+                            <td><strong>Business Viability Risk</strong></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <p><strong>Conclusion:</strong> If we subsidize gas or run batch processors, L2s like Arbitrum are currently
+                too expensive at scale. Polygon or BSC is mandatory for economic viability.</p>
+
+            <h4>Comparative Analysis: L1 vs L2</h4>
+
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Category</th>
+                            <th>Network</th>
+                            <th>Gas Fee</th>
+                            <th>Pros</th>
+                            <th>Cons</th>
+                            <th>Verdict</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- L1 / Sidechains -->
+                        <tr>
+                            <td rowspan="2" style="background: rgba(var(--accent-rgb), 0.05);"><strong>L1 /
+                                    Sidechain</strong></td>
+                            <td><strong>Polygon PoS</strong></td>
+                            <td><span style="color: var(--success); font-weight: 600;">~ $0.001</span></td>
+                            <td>
+                                <ul>
+                                    <li>Extremely low fees</li>
+                                    <li>Mature ecosystem</li>
+                                    <li><strong>Used by Polymarket (Proven)</strong></li>
+                                </ul>
+                            </td>
+                            <td>Reorg risks (rare now)</td>
+                            <td><span class="label label-success">Top Choice</span></td>
+                        </tr>
+                        <tr>
+                            <td><strong>BNB Smart Chain (BSC)</strong></td>
+                            <td><span style="color: var(--success); font-weight: 600;">~ $0.03</span></td>
+                            <td>
+                                <ul>
+                                    <li>Huge global user base</li>
+                                    <li>Low fees</li>
+                                    <li>High liquidity</li>
+                                </ul>
+                            </td>
+                            <td>More centralized validator set</td>
+                            <td><span class="label label-success">Top Choice</span></td>
+                        </tr>
+
+                        <!-- L2s -->
+                        <tr>
+                            <td rowspan="2" style="background: rgba(var(--accent-rgb), 0.05);"><strong>Layer 2</strong>
+                            </td>
+                            <td><strong>Base</strong></td>
+                            <td><span style="color: var(--success); font-weight: 600;">&lt; $0.01</span></td>
+                            <td>
+                                <ul>
+                                    <li>Coinbase integration (easy onboarding)</li>
+                                    <li>Rapidly growing</li>
+                                    <li>EVM equivalent</li>
+                                </ul>
+                            </td>
+                            <td>Newer ecosystem</td>
+                            <td><span class="label label-primary">Alternative</span></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Arbitrum One</strong></td>
+                            <td><span style="color: var(--warning); font-weight: 600;">~ $0.10</span></td>
+                            <td>
+                                <ul>
+                                    <li>Highest L2 TVL</li>
+                                    <li>Deep USDC liquidity</li>
+                                </ul>
+                            </td>
+                            <td>Fees slightly higher than Polygon/BSC</td>
+                            <td><span class="label label-primary">Alternative</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h4>Primary Recommendation: Polygon or BSC</h4>
+            <p><strong>Polygon PoS</strong> and <strong>BSC</strong> are currently the top candidates for deployment.
+                Their combination of extremely low transaction fees, mature ecosystems, and massive global user bases
+                makes them ideal for a high-frequency prediction market platform where gas costs must be negligible.</p>
+
+            <div class="box box-success">
+                <span class="box-title">Technical Note: Zero Code Change (EVM Portability)</span>
+                <p>Because both Polygon and BSC are fully <strong>EVM (Ethereum Virtual Machine) Compatible</strong>,
+                    there is <strong>NO risk</strong> of code divergence.</p>
+                <ul>
+                    <li><strong>Singular Codebase:</strong> We use the exact same Solidity smart contracts for either
+                        network.</li>
+                    <li><strong>Configuration Only:</strong> The only differences are deployment parameters (e.g., USDC
+                        address, Chainlink Oracle address), which are handled by config files, not code changes.</li>
+                    <li><strong>Flexibility:</strong> We can switch between them or deploy to the other later with zero
+                        engineering overhead.</li>
+                </ul>
+            </div>
+        </section>
+
+        <!-- Section 4.2: Bridging Strategy -->
+        <section id="bridging-strategy" class="part-4-section">
+            <h3><span class="section-num part-4">4.2</span>Bridging Strategy (CCIP)</h3>
+
+            <h4>Why Bridge?</h4>
+            <div class="box box-highlight">
+                <span class="box-title">The Liquidity Fragmentation Problem</span>
+                <p>Users have funds on Ethereum Mainnet, Optimism, Arbitrum, etc. We don't want to force them to
+                    manually bridge to our specific chain using complex 3rd party bridges.</p>
+            </div>
+
+            <h4>Solution: Chainlink CCIP (Cross-Chain Interoperability Protocol)</h4>
+            <p>CCIP allows us to accept deposits from <em>any</em> supported chain and route them to our specific market
+                implementation.</p>
+
+            <div class="diagram">
+                <div class="diagram-title">Cross-Chain Betting Flow</div>
+                <div style="text-align: center; padding: 1.5rem; font-family: var(--font-mono); line-height: 1.8;">
+                    [User on Ethereum Mainnet] <br>
+                    ↓ <br>
+                    Sends USDC + "Bet on Brazil" Msg via CCIP<br>
+                    ↓<br>
+                    <strong>Network of Chainlink Nodes</strong> (Secure Transport)<br>
+                    ↓<br>
+                    [Nostra Contract on Base]<br>
+                    Receives USDC → Mints YES Tokens for User
+                </div>
+            </div>
+
+            <h4>Integration Architecture</h4>
+            <div class="grid-2">
+                <div class="card">
+                    <h4>Source Chain (User)</h4>
+                    <ul>
+                        <li><strong>Router Contract</strong>: User interacts with this.</li>
+                        <li><strong>Function</strong>: `ccipSend(destinationChainSelector, message)`</li>
+                        <li><strong>Tokens</strong>: Programmable Token Transfer blocks tokens here and releases on
+                            destination.</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <h4>Destination Chain (Nostra)</h4>
+                    <ul>
+                        <li><strong>CCIP Receiver</strong>: Our contract implements `_ccipReceive`.</li>
+                        <li><strong>Logic</strong>:
+                            <ol>
+                                <li>Verify sender</li>
+                                <li>Decode "Bet on Brazil" message</li>
+                                <li>Use received USDC to buy positions</li>
+                                <li>Credit user address (mapped)</li>
+                            </ol>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <h4>Benefits of CCIP</h4>
+            <ul>
+                <li><strong>Unified Liquidity</strong>: Treat users from all chains as if they are on one.</li>
+                <li><strong>Simplified UX</strong>: "Deposit & Bet" in one transaction (abstracting the bridge).</li>
+                <li><strong>Security</strong>: Risk Management Network (secondary validation) prevents hacks common in
+                    standard bridges.</li>
+            </ul>
         </section>
 
         <footer>
