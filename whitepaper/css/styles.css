@@ -234,6 +234,11 @@ section.part-3-section {
     background: linear-gradient(90deg, rgba(245, 158, 11, 0.05) 0%, transparent 30%);
 }
 
+section.part-4-section {
+    border-left: 3px solid #22c55e;
+    background: linear-gradient(90deg, rgba(34, 197, 94, 0.05) 0%, transparent 30%);
+}
+
 h3 {
     font-size: 1.375rem;
     font-weight: 700;
@@ -282,6 +287,11 @@ h3::before {
 .section-num.part-3 {
     background: linear-gradient(135deg, #f59e0b, #d97706);
     box-shadow: 0 2px 4px rgba(245, 158, 11, 0.3);
+}
+
+.section-num.part-4 {
+    background: linear-gradient(135deg, #22c55e, #16a34a);
+    box-shadow: 0 2px 4px rgba(34, 197, 94, 0.3);
 }
 
 h4 {
