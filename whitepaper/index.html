@@ -37,8 +37,9 @@
                         <li><a href="#market-makers">1.5 Market Makers</a></li>
                         <li><a href="#fee-structure">1.6 Fee Structure</a></li>
                         <li><a href="#amm-vs-orderbook">1.7 AMM vs Order Book</a></li>
-                        <li><a href="#platform-economics">1.8 Platform Economics</a></li>
-                        <li><a href="#implementation">1.9 Implementation Considerations</a></li>
+                        <li><a href="#shared-liquidity">1.8 Shared Liquidity Protocol</a></li>
+                        <li><a href="#platform-economics">1.9 Platform Economics</a></li>
+                        <li><a href="#implementation">1.10 Implementation Considerations</a></li>
                     </ul>
                 </div>
                 <div>
@@ -705,6 +706,22 @@ But: Keeps spread profit!</pre>
                 </ul>
                 <p>Regular users just trade. They don't "provide liquidity" through UI.</p>
             </div>
+
+            <h4>Liquidity Mirroring (Bridge Market Maker)</h4>
+
+            <div class="box box-success">
+                <span class="box-title">Strategic Advantage: Copying Global Liquidity</span>
+                <p>Nostra employs a <strong>"Bridge Market Maker"</strong> bot that mirrors the order books of global
+                    leaders (e.g., Polymarket) in real-time.</p>
+                <ul>
+                    <li><strong>Mechanism:</strong> If Polymarket trades YES at $0.60, our bot places a sell order at
+                        $0.60 on Nostra.</li>
+                    <li><strong>Benefit:</strong> Users experience <strong>global-level depth and pricing</strong>
+                        explicitly from Day 1, without needing organic liquidity.</li>
+                    <li><strong>Result:</strong> We effectively "share" the liquidity of the entire ecosystem.</li>
+                </ul>
+            </div>
+
         </section>
 
         <!-- Section 0.6: Fee Structure -->
@@ -720,15 +737,15 @@ But: Keeps spread profit!</pre>
                 <div style="margin-bottom: 0.5rem;"><strong style="color: #ffffff;">Trading Fee:</strong> <span
                         style="color: #4ade80;">0%</span></div>
                 <div style="margin-bottom: 0.5rem;"><strong style="color: #ffffff;">Redemption Fee (on Net
-                        Winnings):</strong> <span style="color: #facc15;">4%</span></div>
+                        Winnings):</strong> <span style="color: #facc15;">2%</span></div>
                 <div style="color: #f1f5f9; font-size: 0.92em; margin-bottom: 0.5rem;">
                     <em>Net winnings = total payout minus initial investment (amount spent on buying
                         shares/tickets).</em>
                 </div>
                 <div style="font-family: monospace; color: #94a3b8; margin-top: 0.5rem;">
                     Distribution:<br>
-                    ├── Platform Fee: 2%<br>
-                    └── Creator Fee: 2%
+                    ├── Platform Fee: 1%<br>
+                    └── Creator Fee: 1%
                 </div>
             </div>
 
@@ -978,9 +995,54 @@ Trader buys $100 Brazil:
             </div>
         </section>
 
-        <!-- Section 0.8: Platform Economics -->
+        <!-- Section 1.8: Shared Liquidity Protocol -->
+        <section id="shared-liquidity" class="part-1-section">
+            <h3><span class="section-num part-1">1.8</span>Shared Liquidity Protocol</h3>
+
+            <h4>Nostra as a Liquidity Layer</h4>
+
+            <div class="box box-info">
+                <span class="box-title">More than a Website</span>
+                <p>Nostra is designed as a <strong>Protocol</strong>, not just a standalone application. The core
+                    orderbook lives on the blockchain, creating a permissionless global liquidity layer.</p>
+            </div>
+
+            <div class="grid-2">
+                <div class="card">
+                    <h4>Fragmented (Web2 Style)</h4>
+                    <ul>
+                        <li>Each app has its own isolated liquidity</li>
+                        <li>Users on App A cannot trade with users on App B</li>
+                        <li>Liquidity is fractured and shallow</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <h4>Shared (Nostra Protocol)</h4>
+                    <ul>
+                        <li>One single global orderbook</li>
+                        <li>Multiple UIs (Nostra App, 3rd Party Apps, Wallets) share the same liquidity</li>
+                        <li>Aggregated volume leads to tighter spreads</li>
+                    </ul>
+                </div>
+            </div>
+
+            <h4>Ecosystem Benefits</h4>
+            <p>By building a shared liquidity layer, we enable:</p>
+            <ul>
+                <li><strong>Any UI:</strong> Developers can build their own betting interfaces on top of Nostra without
+                    bootstrapping their own liquidity.</li>
+                <li><strong>Trading Bots:</strong> MMs and arbitrage bots can interact directly with the smart
+                    contracts, ensuring efficiency.</li>
+                <li><strong>Network Effects:</strong> Every new integration strengthens the liquidity for everyone else.
+                </li>
+            </ul>
+        </section>
+
+
+
+        <!-- Section 1.9: Platform Economics -->
         <section id="platform-economics" class="part-1-section">
-            <h3><span class="section-num part-1">1.8</span>Platform Economics</h3>
+            <h3><span class="section-num part-1">1.9</span>Platform Economics</h3>
 
             <h4>The Unavoidable Bootstrap Cost</h4>
 
@@ -1069,9 +1131,9 @@ $5,000 liquidity loss = CHEAP customer acquisition</pre>
             </div>
         </section>
 
-        <!-- Section 0.9: Implementation Considerations -->
+        <!-- Section 1.10: Implementation Considerations -->
         <section id="implementation" class="part-1-section">
-            <h3><span class="section-num part-1">1.9</span>Implementation Considerations</h3>
+            <h3><span class="section-num part-1">1.10</span>Implementation Considerations</h3>
 
             <h4>Code Changes for 100/n% Pricing</h4>
 
