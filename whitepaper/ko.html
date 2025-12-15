@@ -1339,13 +1339,24 @@ Charlie가 France NO로 헤지하고 싶어도:
         <!-- Section 2.4: NegRisk Adapter -->
         <section id="negrisk" class="part-2-section">
             <h3><span class="section-num part-2">2.4</span>NegRisk 어댑터 (Polymarket 방식)</h3>
-            <p>핵심 아이디어: <strong>그룹 시장의 모든 NO 토큰은 동일한 가치를 가집니다</strong>.</p>
+            <p>핵심 아이디어: <strong>담보가 상호 배타적인 YES 토큰들로 직접 분할됩니다</strong>. 이를 통해 유동성이 집중됩니다.</p>
 
             <div class="box box-highlight">
-                <span class="box-title">핵심 공식</span>
-                <p style="text-align: center; font-size: 1.1rem;">
-                    <strong>1 Spain NO = 1 Brazil NO = 1 France NO = 1 Argentina NO = 1 England NO</strong>
+                <span class="box-title">핵심 공식 (Core Formula)</span>
+                <p style="text-align: center; font-size: 1.1rem; margin: 0.5rem 0;">
+                    <strong>Sum(Price(YES)) = $1.00</strong>
                 </p>
+                <p style="text-align: center; font-size: 1.1rem; margin: 0.5rem 0; color: var(--text-muted);">
+                    <strong>Sum(Price(NO)) = $(N - 1).00</strong>
+                </p>
+                <p style="margin-top: 1rem;">
+                    NegRisk는 각 결과를 위한 독립적인 바이너리 시장을 만드는 대신, 모든 결과를 하나로 연결합니다.
+                    $1의 담보(Collateral)가 모든 결과(Outcome)로 쪼개집니다.
+                </p>
+                <ul style="margin-top: 0.5rem;">
+                    <li><strong>Grouped Binary (기존):</strong> $1 담보 → 1 YES(Spain) + 1 NO(Spain)</li>
+                    <li><strong>NegRisk (개선):</strong> $1 담보 → 1 YES(Spain) + 1 YES(Brazil) + ... + 1 YES(England)</li>
+                </ul>
             </div>
 
             <h4>실전 예시: $10,000 유동성, 5개 국가</h4>
@@ -1890,6 +1901,40 @@ performUpkeep()</pre>
         <!-- Section 3.6: Smart Contract Integration -->
         <section id="smart-contracts" class="part-3-section">
             <h3><span class="section-num part-3">3.6</span>스마트 컨트랙트 통합</h3>
+
+            <h4>Functions 클라이언트 예시 (요청)</h4>
+            <pre>
+<span class="code-comment">// FunctionsClient.sol (우리 마켓 컨트랙트가 상속)</span>
+<span class="code-keyword">import</span> { FunctionsClient } <span class="code-keyword">from</span> <span class="code-value">"@chainlink/.../FunctionsClient.sol"</span>;
+<span class="code-keyword">import</span> { FunctionsRequest } <span class="code-keyword">from</span> <span class="code-value">"@chainlink/.../FunctionsRequest.sol"</span>;
+
+<span class="code-keyword">contract</span> NostraMarket <span class="code-keyword">is</span> FunctionsClient {
+    <span class="code-keyword">using</span> FunctionsRequest <span class="code-keyword">for</span> FunctionsRequest.Request;
+
+    <span class="code-keyword">address</span> router = 0x...; <span class="code-comment">// 체인링크 라우터 (오라클 컨트랙트)</span>
+    <span class="code-keyword">bytes32</span> donId = 0x...;  <span class="code-comment">// DON ID (네트워크 식별자)</span>
+    <span class="code-keyword">uint64</span> subscriptionId = 1234; <span class="code-comment">// 내 구독 ID (결제 계정)</span>
+
+    <span class="code-comment">// 이 함수가 체인링크 라우터 컨트랙트를 호출합니다</span>
+    <span class="code-keyword">function</span> resolveMarket() <span class="code-keyword">external</span> {
+        
+        <span class="code-comment">// 1. 요청서 작성 (JavaScript 로직 포함)</span>
+        FunctionsRequest.Request <span class="code-keyword">memory</span> req;
+        req.initializeRequestForInlineJavaScript(<span class="code-value">"const apiResponse = await Functions.makeHttpRequest(...)"</span>);
+
+        <span class="code-comment">// 2. 체인링크 라우터로 전송 (그림의 Step 1 화살표)</span>
+        <span class="code-keyword">bytes32</span> requestId = _sendRequest(
+            req.encodeCBOR(),
+            subscriptionId,
+            gasLimit,
+            donId
+        );
+        
+        <span class="code-comment">// 3. 요청 ID 저장 (나증에 검증용)</span>
+        pendingRequests[requestId] = <span class="code-keyword">true</span>;
+    }
+}
+            </pre>
 
             <h4>Price Feed Resolver 예시</h4>
             <pre>
