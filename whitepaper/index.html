@@ -1656,17 +1656,27 @@ Even if Charlie wants to hedge with France NO:
         <!-- Section 2.4: NegRisk Adapter -->
         <section id="negrisk" class="part-2-section">
             <h3><span class="section-num part-2">2.4</span>NegRisk Adapter (Polymarket Approach)</h3>
-            <p>The key insight: <strong>all NO tokens from a grouped market have equal value</strong>. This enables
-                liquidity rebalancing.</p>
+            <p>The key insight: <strong>Collateral is split directly into mutually exclusive YES tokens</strong>. This
+                concentrates liquidity.</p>
 
             <div class="box box-highlight">
                 <span class="box-title">Core Formula</span>
                 <p style="text-align: center; font-size: 1.1rem; margin: 0.5rem 0;">
-                    <strong>1 Spain NO = 1 Brazil NO = 1 France NO = 1 Argentina NO = 1 England NO</strong>
+                    <strong>Sum(Price(YES)) = $1.00</strong>
                 </p>
-                <p style="margin-top: 1rem;">Because exactly ONE outcome will win, holding NO on any outcome is
-                    mathematically the same
-                    as holding NO on any other outcome — both pay $1 if their outcome loses.</p>
+                <p style="text-align: center; font-size: 1.1rem; margin: 0.5rem 0; color: var(--text-muted);">
+                    <strong>Sum(Price(NO)) = $(N - 1).00</strong>
+                </p>
+                <p style="margin-top: 1rem;">
+                    Instead of creating independent binary markets where <code>YES + NO = $1</code> for <em>each</em>
+                    outcome, NegRisk links them all together.
+                    A single dollar of collateral is split across all outcomes.
+                </p>
+                <ul style="margin-top: 0.5rem;">
+                    <li><strong>Grouped Binary:</strong> $1 collateral → 1 YES(Spain) + 1 NO(Spain)</li>
+                    <li><strong>NegRisk:</strong> $1 collateral → 1 YES(Spain) + 1 YES(Brazil) + ... + 1 YES(England)
+                    </li>
+                </ul>
             </div>
 
             <h4>Worked Example: $10,000 Liquidity, 5 Countries</h4>
@@ -2662,6 +2672,40 @@ Mint 400 new Spain YES+NO pairs
         <!-- Section 2.5: Smart Contract Integration -->
         <section id="smart-contracts" class="part-3-section">
             <h3><span class="section-num part-3">3.6</span>Smart Contract Integration</h3>
+
+            <h4>Functions Client Example (Request)</h4>
+            <pre>
+<span class="code-comment">// FunctionsClient.sol (Inherited by our market contract)</span>
+<span class="code-keyword">import</span> { FunctionsClient } <span class="code-keyword">from</span> <span class="code-value">"@chainlink/.../FunctionsClient.sol"</span>;
+<span class="code-keyword">import</span> { FunctionsRequest } <span class="code-keyword">from</span> <span class="code-value">"@chainlink/.../FunctionsRequest.sol"</span>;
+
+<span class="code-keyword">contract</span> NostraMarket <span class="code-keyword">is</span> FunctionsClient {
+    <span class="code-keyword">using</span> FunctionsRequest <span class="code-keyword">for</span> FunctionsRequest.Request;
+
+    <span class="code-keyword">address</span> router = 0x...; <span class="code-comment">// Chainlink Router (Oracle Contract)</span>
+    <span class="code-keyword">bytes32</span> donId = 0x...;  <span class="code-comment">// DON ID</span>
+    <span class="code-keyword">uint64</span> subscriptionId = 1234; <span class="code-comment">// My Subscription ID</span>
+
+    <span class="code-comment">// This function calls the Chainlink Router contract</span>
+    <span class="code-keyword">function</span> resolveMarket() <span class="code-keyword">external</span> {
+        
+        <span class="code-comment">// 1. Create Request (Include JS Logic)</span>
+        FunctionsRequest.Request <span class="code-keyword">memory</span> req;
+        req.initializeRequestForInlineJavaScript(<span class="code-value">"const apiResponse = await Functions.makeHttpRequest(...)"</span>);
+
+        <span class="code-comment">// 2. Send to Chainlink Router (Step 1 in Diagram)</span>
+        <span class="code-keyword">bytes32</span> requestId = _sendRequest(
+            req.encodeCBOR(),
+            subscriptionId,
+            gasLimit,
+            donId
+        );
+        
+        <span class="code-comment">// 3. Store ID for verification</span>
+        pendingRequests[requestId] = <span class="code-keyword">true</span>;
+    }
+}
+            </pre>
 
             <h4>Price Feed Resolver Example</h4>
             <pre>
