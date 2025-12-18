@@ -1,6 +1,6 @@
 {
   "name": "@nostra-dev/sdk",
-  "version": "1.0.1",
+  "version": "0.9.1",
   "description": "TypeScript SDK for interacting with Nostra Prediction Market contracts",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
