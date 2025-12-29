@@ -55,16 +55,16 @@
                     </ul>
                 </div>
                 <div>
-                    <div class="toc-section-title">Part 3: Chainlink Integration</div>
+                    <div class="toc-section-title">Part 3: Oracle Integration</div>
                     <ul>
-                        <li><a href="#why-chainlink">3.1 Why Chainlink for Resolution</a></li>
-                        <li><a href="#chainlink-setup">3.2 Getting Started with Chainlink</a></li>
-                        <li><a href="#long-tail-markets">3.3 Handling Long-tail Markets</a></li>
-                        <li><a href="#chainlink-products">3.4 Chainlink Products Overview</a></li>
-                        <li><a href="#resolution-arch">3.5 Resolution Architecture</a></li>
-                        <li><a href="#smart-contracts">3.6 Smart Contract Integration</a></li>
-                        <li><a href="#cost-security">3.7 Cost & Security</a></li>
-                        <li><a href="#roadmap">3.8 Implementation Roadmap</a></li>
+                        <li><a href="#oracle-strategy">3.1 Oracle Strategy & Comparison</a></li>
+                        <li><a href="#uma-integration">3.2 Optimistic Oracle (UMA) Integration</a></li>
+                        <li><a href="#uma-spec">3.3 OptimisticOracleV3 Specification</a></li>
+                        <li><a href="#chainlink-setup">3.4 Getting Started with Chainlink</a></li>
+                        <li><a href="#chainlink-products">3.5 Chainlink Products Overview</a></li>
+                        <li><a href="#resolution-arch">3.6 Resolution Architecture</a></li>
+                        <li><a href="#smart-contracts">3.7 Smart Contract Integration</a></li>
+                        <li><a href="#cost-security">3.8 Cost & Security</a></li>
                     </ul>
                 </div>
                 <div>
@@ -2073,46 +2073,316 @@ Mint 400 new Spain YES+NO pairs
 
         <!-- PART 2: CHAINLINK INTEGRATION -->
         <div class="part-divider">
-            <h2>Part 3: Chainlink Oracle Integration</h2>
-            <span class="part-subtitle">Decentralized Market Resolution</span>
+            <h2>Part 3: Oracle Integration</h2>
+            <span class="part-subtitle">Decentralized Market Resolution Strategy</span>
         </div>
 
-        <!-- Section 2.1: Why Chainlink -->
-        <section id="why-chainlink" class="part-3-section">
-            <h3><span class="section-num part-3">3.1</span>Why Chainlink for Market Resolution</h3>
+        <!-- Section 3.1: Oracle Strategy -->
+        <section id="oracle-strategy" class="part-3-section">
+            <h3><span class="section-num part-3">3.1</span>Oracle Strategy & Comparison</h3>
 
-            <h4>Current State: Manual Resolution</h4>
-            <div class="box box-danger">
-                <span class="box-title">Problems with Manual Resolution</span>
-                <ul>
-                    <li><strong>Centralized trust:</strong> Admin can manipulate outcomes</li>
-                    <li><strong>No verifiable source:</strong> Users must trust the platform</li>
-                    <li><strong>Human error risk:</strong> Manual process prone to mistakes</li>
-                </ul>
+            <p>Nostra adopts a <strong>Multi-Oracle Strategy</strong> to handle various market types, ranging from
+                crypto prices to niche local events. We benchmark against industry leaders like <strong>Opinion
+                    Labs</strong> (who use Hybrid AI + Optimistic Oracles) and <strong>Polymarket</strong> (UMA).</p>
+
+            <h4>Comparative Analysis: Three Oracle Tiers</h4>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Oracle Type</th>
+                            <th>Mechanism</th>
+                            <th>Pros</th>
+                            <th>Cons</th>
+                            <th>Best For</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Manual Admin</strong></td>
+                            <td>Trusted admin key resolves outcome</td>
+                            <td>
+                                <ul>
+                                    <li>Fastest</li>
+                                    <li>Cheapest (Gas only)</li>
+                                    <li>Flexible</li>
+                                </ul>
+                            </td>
+                            <td>
+                                <ul>
+                                    <li><strong>Centralized Trust</strong></li>
+                                    <li>Scalability bottleneck</li>
+                                </ul>
+                            </td>
+                            <td>Beta launch, test markets, emergency resolution</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Chainlink</strong><br><span style="font-size:0.8em">(Functions / Feeds)</span>
+                            </td>
+                            <td>Decentralized nodes fetch API/Price data</td>
+                            <td>
+                                <ul>
+                                    <li><strong>Trustless & Automated</strong></li>
+                                    <li>Industry Standard</li>
+                                    <li>Instant settlement</li>
+                                </ul>
+                            </td>
+                            <td>
+                                <ul>
+                                    <li>Requires digital source (API/URL)</li>
+                                    <li>Cost (LINK tokens)</li>
+                                </ul>
+                            </td>
+                            <td>Sports, Crypto Prices, Election Results (with API)</td>
+                        </tr>
+                        <tr>
+                            <td><strong>UMA</strong><br><span style="font-size:0.8em">(Optimistic Oracle)</span></td>
+                            <td>"True until disputed" + Voter Jury</td>
+                            <td>
+                                <ul>
+                                    <li><strong>Any arbitrary event</strong></li>
+                                    <li>No API needed (human verification)</li>
+                                    <li>Crypto-economic security</li>
+                                </ul>
+                            </td>
+                            <td>
+                                <ul>
+                                    <li><strong>Slow</strong> (2hr+ challenge period)</li>
+                                    <li>Complex Game Theory</li>
+                                </ul>
+                            </td>
+                            <td>Long-tail events, "Opinion" based markets (e.g., "Will AI take over?")</td>
+                        </tr>
+                    </tbody>
+                </table>
             </div>
 
-            <h4>Chainlink Solution</h4>
-            <div class="box box-success">
-                <span class="box-title">Benefits of Chainlink Resolution</span>
+            <div class="box box-highlight">
+                <span class="box-title">Benchmark: Opinion Labs Strategy</span>
+                <p>Opinion Labs utilizes a sophisticated <strong>Hybrid Oracle</strong> approach:</p>
                 <ul>
-                    <li><strong>Decentralized oracle network:</strong> Multiple nodes verify data</li>
-                    <li><strong>Verifiable data sources:</strong> Cryptographic proofs of authenticity</li>
-                    <li><strong>Trustless automation:</strong> No human intervention needed</li>
-                    <li><strong>Industry standard:</strong> Proven security track record</li>
+                    <li><strong>AI Oracle (Opinion AI):</strong> First pass to ingest/summarize data and propose an
+                        outcome.</li>
+                    <li><strong>Optimistic Oracle (UMA):</strong> Final security layer. If the AI is wrong, humans can
+                        dispute it via UMA.</li>
                 </ul>
+                <p>Nostra will adopt this <strong>"Optimistic Verification"</strong> pattern for unstructured markets.
+                </p>
             </div>
 
-            <div style="margin: 2rem 0; text-align: center;">
-                <img src="images/chainlink-architecture.png" alt="Chainlink Architecture"
-                    style="max-width: 100%; border-radius: 12px; border: 1px solid var(--border); box-shadow: var(--shadow-md);">
-                <p style="font-size: 0.8125rem; color: var(--text-muted); margin-top: 0.5rem;">Chainlink Decentralized
-                    Oracle Network (DON) Architecture</p>
+            <h4>Adoption Roadmap: Step-by-Step Evolution</h4>
+            <div class="timeline">
+                <div class="timeline-item">
+                    <div class="timeline-content">
+                        <h5>1. Manual Admin (Beta / V1)</h5>
+                        <p><strong>Goal:</strong> Validate market demand and UI/UX.</p>
+                        <p><strong>Method:</strong> Admin key resolves all markets. Fast, free, but centralized.</p>
+                    </div>
+                </div>
+                <div class="timeline-item">
+                    <div class="timeline-content">
+                        <h5>2. Hybrid Integration (V1.5)</h5>
+                        <p><strong>Goal:</strong> Automate high-volume markets.</p>
+                        <p><strong>Method:</strong> Introduce <strong>Chainlink</strong> for Sports & Crypto markets.
+                            Keep Admin for long-tail events.</p>
+                    </div>
+                </div>
+                <div class="timeline-item">
+                    <div class="timeline-content">
+                        <h5>3. Decentralized Long-Tail (V2.0)</h5>
+                        <p><strong>Goal:</strong> Permissionless market creation.</p>
+                        <p><strong>Method:</strong> Integrate <strong>UMA (Optimistic Oracle)</strong>. Admin key allows
+                            "veto" only (emergency brake).</p>
+                    </div>
+                </div>
+                <div class="timeline-item">
+                    <div class="timeline-content">
+                        <h5>4. Full Decentralization (DAO)</h5>
+                        <p><strong>Goal:</strong> Unstoppable protocol.</p>
+                        <p><strong>Method:</strong> Remove Admin key. Markets resolved only by Chainlink, UMA, or DAO
+                            governance.</p>
+                    </div>
+                </div>
             </div>
         </section>
 
-        <!-- Section 3.2: Getting Started with Chainlink -->
+        <!-- Section 3.2: Optimistic Oracle (UMA) Integration -->
+        <section id="uma-integration" class="part-3-section">
+            <h3><span class="section-num part-3">3.2</span>Optimistic Oracle (UMA) Integration</h3>
+            <p>For markets where verifiable on-chain data or APIs are unavailable (e.g., "Will this YouTuber reach 1M
+                subscribers?" or highly subjective "Opinion" markets), we utilize <strong>UMA's Optimistic
+                    Oracle</strong>. This allows humans to resolve markets with crypto-economic guarantees.</p>
+
+            <h4>The "Optimistic" Mechanism</h4>
+            <div class="grid-2">
+                <div class="card">
+                    <h4>Flow of Truth</h4>
+                    <ol style="font-size: 0.875rem; margin-bottom: 0;">
+                        <li><strong>Assert:</strong> A market creator or bot asserts: "Outcome A won."</li>
+                        <li><strong>Challenge Window:</strong> A 2-hour window opens.</li>
+                        <li><strong>No Dispute:</strong> If no one disagrees, the assertion becomes Truth. (Optimistic
+                            Path)</li>
+                        <li><strong>Dispute:</strong> If someone challenges (stakes bond), UMA token holders vote to
+                            decide.</li>
+                    </ol>
+                </div>
+                <div class="card">
+                    <h4>Why it works</h4>
+                    <ul style="font-size: 0.875rem; margin-bottom: 0;">
+                        <li><strong>Costly to lie:</strong> Asserters must post a bond (e.g., $100). If they lie and are
+                            disputed, they lose it.</li>
+                        <li><strong>Voter Incentives:</strong> UMA voters are incentivized to vote correctly to maintain
+                            the protocol's value.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <h4>Resolution Call Flow</h4>
+            <div class="diagram">
+                <div class="diagram-title">Nostra ↔ UMA ↔ Challenger Interaction</div>
+                <div class="flow-steps">
+                    <div class="flow-step">
+                        <span class="step-number">1</span>
+                        <span class="step-text"><strong>Assert Truth</strong><br>Nostra Contract</span>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step">
+                        <span class="step-number">2</span>
+                        <span class="step-text"><strong>Monitor</strong><br>3rd Party Keepers (Permissionless)</span>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step">
+                        <span class="step-number">3</span>
+                        <span class="step-text"><strong>Dispute (Opt)</strong><br>UMA Contract</span>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step">
+                        <span class="step-number">4</span>
+                        <span class="step-text"><strong>Settle</strong><br>Payout / Resolve</span>
+                    </div>
+                </div>
+            </div>
+
+            <h4>Hybrid Implementation: Opinion AI + UMA</h4>
+            <p>To scale resolution for unstructured markets, we employ a <strong>Hybrid AI approach</strong> similar to
+                Opinion Labs. This combines the speed of AI with the security of the Optimistic Oracle.</p>
+            <div class="grid-2">
+                <div class="card">
+                    <h4>How it Works</h4>
+                    <ol style="font-size: 0.875rem;">
+                        <li><strong>Ingest & Analyze:</strong> An off-chain AI agent (LLM) continuously monitors active
+                            markets and relevant real-world data (news, social sentiment).</li>
+                        <li><strong>Propose Outcome:</strong> The AI determines the result and acts as the
+                            <strong>Asserter</strong>, submitting the tx to UMA.
+                        </li>
+                        <li><strong>Human Review (Watchdog):</strong> If the AI is correct, the market resolves quickly.
+                            If the AI hallucinates, human watchers dispute it to earn the bond.</li>
+                    </ol>
+                </div>
+                <div class="card">
+                    <h4>Benefits</h4>
+                    <ul style="font-size: 0.875rem;">
+                        <li><strong>Scalability:</strong> AI can resolve thousands of long-tail markets 24/7.</li>
+                        <li><strong>Cost Efficiency:</strong> Reduces the need for manual admin intervention.</li>
+                        <li><strong>Safety:</strong> UMA provides the ultimate "kill switch" against AI errors.</li>
+                    </ul>
+                </div>
+            </div>
+
+        </section>
+
+        <!-- Section 3.3: OptimisticOracleV3 Specification -->
+        <section id="uma-spec" class="part-3-section">
+            <h3><span class="section-num part-3">3.3</span>OptimisticOracleV3 Specification</h3>
+            <p>The <a href="https://docs.uma.xyz/" target="_blank">OptimisticOracleV3</a> is the core contract governing
+                assertion lifecycles. It utilizes an <strong>escalation game</strong> where truth is assumed unless
+                disputed.</p>
+
+            <h4>Key Functions</h4>
+            <div class="code-block-wrapper">
+                <pre>
+<span class="code-comment">// Core OOv3 Interface</span>
+<span class="code-keyword">interface</span> <span class="code-class">IOptimisticOracleV3</span> {
+    <span class="code-comment">/**
+     * @notice Asserts a truth about a world state.
+     * @param claim Encoded data or string representing the statement (e.g. "BTC > 50k at block 100").
+     * @param asserter Address that receives the bond back if correct.
+     * @param callbackRecipient Address to notify when settled.
+     * @return assertionId Unique ID for this assertion.
+     */</span>
+    <span class="code-keyword">function</span> <span class="code-function">assertTruthWithDefaults</span>(
+        <span class="code-keyword">bytes calldata</span> claim,
+        <span class="code-keyword">address</span> asserter
+    ) <span class="code-keyword">external returns</span> (<span class="code-keyword">bytes32</span> assertionId);
+
+    <span class="code-comment">/**
+     * @notice Settles the assertion. Can only be called after liveness period.
+     * @return bool True if the assertion was resolved as TRUTHFUL.
+     */</span>
+    <span class="code-keyword">function</span> <span class="code-function">settleAndGetAssertionResult</span>(<span class="code-keyword">bytes32</span> assertionId) <span class="code-keyword">external returns</span> (<span class="code-keyword">bool</span>);
+
+    <span class="code-comment">/**
+     * @notice View function to check status.
+     */</span>
+    <span class="code-keyword">function</span> <span class="code-function">getAssertionResult</span>(<span class="code-keyword">bytes32</span> assertionId) <span class="code-keyword">external view returns</span> (<span class="code-keyword">bool</span>);
+}
+</pre>
+            </div>
+
+            <h4>Integration Logic in Nostra</h4>
+            <ul style="font-size: 0.9rem;">
+                <li><strong>Assertion:</strong> We call <code>assertTruthWithDefaults</code>. This pulls the
+                    <strong>Minimum Bond</strong> (usually WETH or USDC) from the asserter.
+                </li>
+                <li><strong>Liveness Period:</strong> Defaults to <strong>7200 seconds (2 hours)</strong>. During this
+                    window, any
+                    bot can call `disputeAssertion`.</li>
+                <li><strong>Settlement:</strong> Once the window closes without dispute, we call
+                    <code>settleAndGetAssertionResult</code>. If it returns <code>true</code>, Nostra pays out the
+                    winners.
+                </li>
+            </ul>
+
+            <h4>Dispute Flow</h4>
+            <ul style="font-size: 0.9rem;">
+                <li><strong>Monitoring:</strong> Watchdog bots verify assertions against real-world data.</li>
+                <li><strong>Challenge:</strong> If a discrepancy is found, the bot calls <code>disputeAssertion</code>.
+                    This
+                    moves the adjudication to UMA's Data Verification Mechanism (DVM).</li>
+                <li><strong>DVM Voting:</strong> UMA token holders vote on the specific truth.</li>
+                <li><strong>Reward:</strong> If the dispute was valid, the challenger receives the Asserter's bond as a
+                    bounty.</li>
+            </ul>
+
+            <div class="box" style="border-left: 4px solid #ef4444; margin-top: 1.5rem;">
+                <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem;">
+                    <span style="font-size: 1.25rem;">🔴</span>
+                    <span class="box-title" style="margin: 0;">Role of UMA Token</span>
+                </div>
+                <p style="margin-bottom: 0.5rem;">The UMA token is critical for the DVM (Data Verification Mechanism):
+                </p>
+                <ul style="font-size: 0.875rem; margin: 0;">
+                    <li><strong>Voting Rights:</strong> Token holders vote on disputed outcomes (e.g., "Did Candidate X
+                        win?").</li>
+                    <li><strong>Economic Guarantee:</strong> If the DVM is corrupted, the cost to corrupt it must exceed
+                        the profit from corruption (Cost of Corruption > Profit from Corruption).</li>
+                    <li><strong>Buyback & Burn:</strong> Unused rewards or fees may be used to buy back and burn UMA,
+                        aligning incentives.</li>
+                </ul>
+            </div>
+
+            <div class="box box-warning">
+                <span class="box-title">Required: The "Watchdog" Bot</span>
+                <p>The optimistic model only works if someone is watching. Nostra must operate (or incentivize)
+                    <strong>Watchdog Bots</strong> that monitor all active assertions. If a malicious user asserts a
+                    false outcome, the bot must detect it and trigger a dispute to protect market participants.
+                </p>
+            </div>
+        </section>
+
+        <!-- Section 3.4: Getting Started with Chainlink -->
         <section id="chainlink-setup" class="part-3-section">
-            <h3><span class="section-num part-3">3.2</span>Getting Started with Chainlink</h3>
+            <h3><span class="section-num part-3">3.4</span>Getting Started with Chainlink</h3>
             <p>Before integrating Chainlink oracles into Nostra, there are essential preparation steps to ensure smooth
                 operation and cost management.</p>
 
@@ -2336,76 +2606,9 @@ Mint 400 new Spain YES+NO pairs
             </div>
         </section>
 
-        <!-- Section 3.3: Handling Long-tail Markets -->
-        <section id="long-tail-markets" class="part-3-section">
-            <h3><span class="section-num part-3">3.3</span>Handling Long-tail & Unstructured Markets</h3>
-            <p>What if we want to resolve a niche market like <em>"Who won the local 'Our Ballad' singing
-                    contest?"</em>?</p>
-
-            <h4>Scenario A: Data Exists Online</h4>
-            <div class="box box-highlight">
-                <span class="box-title">Solution: Chainlink Functions</span>
-                <p>If the result is published on an official website, news article, or Wikipedia:</p>
-                <ol>
-                    <li><strong>Developer</strong> writes a JavaScript script to scrape the winner's name (e.g., from
-                        <code>div.winner</code>).
-                    </li>
-                    <li><strong>Chainlink Nodes (DON)</strong> execute this script and fetch the data.</li>
-                    <li><strong>Consensus</strong> is reached, and the result ("Kim Cheol-soo") is delivered on-chain.
-                    </li>
-                </ol>
-                <p style="color: #166534; font-weight: 500; margin-top: 0.5rem;">✓ Best for: Verifiable digital data
-                    sources.</p>
-            </div>
-
-            <h4>Scenario B: No Digital Footprint</h4>
-            <div class="box box-danger">
-                <span class="box-title">The Limitation</span>
-                <p>If the contest is so small that no news covers it and there's no website, <strong>Chainlink cannot
-                        resolve it</strong>. Chainlink is a delivery service for real-world data, not a creator of
-                    truth.</p>
-            </div>
-
-            <h4>Alternative: UMA (Optimistic Oracle)</h4>
-            <p>For unstructured, long-tail markets where no API exists, <strong>UMA</strong> offers a human-powered
-                solution (used by Polymarket).</p>
-
-            <div class="grid-2">
-                <div class="card">
-                    <h4>How UMA Works</h4>
-                    <ol style="font-size: 0.875rem;">
-                        <li><strong>Proposal:</strong> Anyone asserts "Kim Cheol-soo won".</li>
-                        <li><strong>Challenge Period:</strong> A window (e.g., 2 hours) opens for disputes.</li>
-                        <li><strong>Finalization:</strong> If no dispute, the answer is accepted.</li>
-                        <li><strong>Dispute:</strong> If challenged, token holders vote to decide the truth.</li>
-                    </ol>
-                </div>
-                <div class="card">
-                    <h4>Pros & Cons</h4>
-                    <ul style="font-size: 0.875rem;">
-                        <li><span style="color: #166534;">✓</span> Works for ANY question humans can verify.</li>
-                        <li><span style="color: #166534;">✓</span> No API required.</li>
-                        <li><span style="color: #991b1b;">✗</span> Slower (requires challenge period).</li>
-                        <li><span style="color: #991b1b;">✗</span> More complex game theory.</li>
-                    </ul>
-                </div>
-            </div>
-
-            <div class="box box-warning">
-                <span class="box-title">Summary: Choosing the Right Oracle</span>
-                <ul>
-                    <li><strong>Website/API exists</strong> → <span class="label label-primary">Chainlink
-                            Functions</span> (Cleanest, Fastest)</li>
-                    <li><strong>No digital info</strong> → <span class="label label-warning">UMA (Optimistic)</span> or
-                        <span class="label label-danger">Manual Admin</span> (Cheapest)
-                    </li>
-                </ul>
-            </div>
-        </section>
-
-        <!-- Section 2.3: Chainlink Products -->
+        <!-- Section 3.5: Chainlink Products -->
         <section id="chainlink-products" class="part-3-section">
-            <h3><span class="section-num part-3">3.4</span>Chainlink Products Overview</h3>
+            <h3><span class="section-num part-3">3.5</span>Chainlink Products Overview</h3>
 
             <div class="table-wrapper">
                 <table>
@@ -2488,64 +2691,53 @@ Mint 400 new Spain YES+NO pairs
                 <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem;">
                     <span style="font-size: 1.5rem;">⚡</span>
                     <span class="box-title" style="margin: 0;">Chainlink Functions</span>
-                    <span class="label label-accent">~0.2-0.5 LINK</span>
+                    <span class="label label-accent">Paid</span>
                 </div>
-                <p><strong>What it does:</strong> Execute custom JavaScript code on Chainlink's Decentralized Oracle
-                    Network (DON) to fetch data from any API.</p>
+                <p><strong>What it does:</strong> Allows your smart contract to fetch data from ANY web API (Web2) using
+                    JavaScript code.</p>
                 <div class="grid-2" style="margin: 1rem 0;">
                     <div>
                         <p style="font-size: 0.875rem; margin-bottom: 0.5rem;"><strong>How it works:</strong></p>
                         <ol style="font-size: 0.875rem; margin: 0;">
-                            <li>Write JavaScript to fetch/process data</li>
-                            <li>Contract sends request to DON</li>
-                            <li>Multiple nodes execute your script</li>
-                            <li>Consensus result returned on-chain</li>
+                            <li>You write a JS snippet to call an API (e.g., ESPN, Weather.com)</li>
+                            <li>Chainlink nodes run your code securely</li>
+                            <li>The result is consensus-checked and returned to your contract</li>
                         </ol>
                     </div>
                     <div>
                         <p style="font-size: 0.875rem; margin-bottom: 0.5rem;"><strong>Best for:</strong></p>
                         <ul style="font-size: 0.875rem; margin: 0;">
-                            <li>Sports scores (ESPN, official league APIs)</li>
-                            <li>Election results (government sources)</li>
-                            <li>Weather data, custom events</li>
-                            <li>Any data with a public API</li>
+                            <li>Sports results (ESPN API)</li>
+                            <li>Election data (AP News API)</li>
+                            <li>YouTube stats/Spotify streams</li>
                         </ul>
                     </div>
                 </div>
-                <pre style="font-size: 0.8rem; margin: 0;">
-<span class="code-comment">// JavaScript executed by DON</span>
-<span class="code-keyword">const</span> response = <span class="code-keyword">await</span> Functions.makeHttpRequest({
-  url: <span class="code-string">`https://api.sports.io/match/${args[0]}`</span>
-});
-<span class="code-keyword">return</span> Functions.encodeString(response.data.winner);</pre>
             </div>
 
             <!-- Automation -->
-            <div class="box" style="border-left: 4px solid #8b5cf6; margin-bottom: 1.5rem;">
+            <div class="box" style="border-left: 4px solid #a855f7; margin-bottom: 1.5rem;">
                 <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem;">
-                    <span style="font-size: 1.5rem;">⏰</span>
-                    <span class="box-title" style="margin: 0;">Chainlink Automation</span>
-                    <span class="label" style="background: #8b5cf6; color: white;">~0.1-0.3 LINK</span>
+                    <span style="font-size: 1.5rem;">🤖</span>
+                    <span class="box-title" style="margin: 0;">Chainlink Automation (Keepers)</span>
+                    <span class="label label-accent">Paid</span>
                 </div>
-                <p><strong>What it does:</strong> Automatically trigger smart contract functions based on time schedules
-                    or custom conditions.</p>
+                <p><strong>What it does:</strong> Automatically executes your smart contract functions when specific
+                    conditions are met (e.g., time passed).</p>
                 <div class="grid-2" style="margin: 1rem 0;">
                     <div>
                         <p style="font-size: 0.875rem; margin-bottom: 0.5rem;"><strong>How it works:</strong></p>
                         <ol style="font-size: 0.875rem; margin: 0;">
-                            <li>Register your contract as an "Upkeep"</li>
-                            <li>Define trigger: time-based or condition-based</li>
-                            <li>Chainlink nodes monitor your conditions</li>
-                            <li>When triggered, <code>performUpkeep()</code> is called</li>
+                            <li>Register an "Upkeep" (job)</li>
+                            <li>Nodes check conditions (e.g., "Is market expired?")</li>
+                            <li>If true, nodes execute the `resolve()` function</li>
                         </ol>
                     </div>
                     <div>
                         <p style="font-size: 0.875rem; margin-bottom: 0.5rem;"><strong>Best for:</strong></p>
                         <ul style="font-size: 0.875rem; margin: 0;">
-                            <li>Auto-resolve markets at deadline</li>
-                            <li>Trigger resolution when conditions met</li>
-                            <li>Scheduled price checks</li>
-                            <li>Any "cron job" style automation</li>
+                            <li>Auto-resolving markets at deadline</li>
+                            <li>distributing payouts automatically</li>
                         </ul>
                     </div>
                 </div>
@@ -2919,87 +3111,7 @@ ETH/USD: 0xF0d50568e3A7e8259E16663972b11910F89BD8e7</pre>
             </div>
         </section>
 
-        <!-- Section 2.7: Implementation Roadmap -->
-        <section id="roadmap" class="part-3-section">
-            <h3><span class="section-num part-3">3.8</span>Implementation Roadmap</h3>
 
-            <div class="grid-2">
-                <div class="card">
-                    <h4>Phase 1: Price Feed Markets (Week 1-2)</h4>
-                    <ul style="font-size: 0.875rem;">
-                        <li>Deploy PriceFeedResolver contract</li>
-                        <li>Test with BTC/USD, ETH/USD feeds</li>
-                        <li>Create "Will BTC exceed $X?" market</li>
-                        <li>Update frontend resolution page</li>
-                    </ul>
-                </div>
-                <div class="card">
-                    <h4>Phase 2: Automation (Week 3)</h4>
-                    <ul style="font-size: 0.875rem;">
-                        <li>Add AutomationCompatible to resolver</li>
-                        <li>Register Upkeep on Chainlink</li>
-                        <li>Test auto-resolution at deadline</li>
-                        <li>Monitor and tune gas settings</li>
-                    </ul>
-                </div>
-                <div class="card">
-                    <h4>Phase 3: Functions (Week 4-5)</h4>
-                    <ul style="font-size: 0.875rem;">
-                        <li>Set up Functions subscription</li>
-                        <li>Deploy FunctionsResolver contract</li>
-                        <li>Write JavaScript for sports API</li>
-                        <li>Handle edge cases (API down)</li>
-                    </ul>
-                </div>
-                <div class="card">
-                    <h4>Phase 4: Production (Week 6)</h4>
-                    <ul style="font-size: 0.875rem;">
-                        <li>Security audit</li>
-                        <li>Mainnet deployment</li>
-                        <li>Monitoring dashboards</li>
-                        <li>Admin fallback procedures</li>
-                    </ul>
-                </div>
-            </div>
-
-            <div class="box box-highlight" style="margin-top: 2rem;">
-                <span class="box-title">Summary</span>
-                <div class="table-wrapper" style="margin-top: 1rem;">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Market Type</th>
-                                <th>Chainlink Product</th>
-                                <th>Cost</th>
-                                <th>Complexity</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td>Price-based ("Will BTC > $X?")</td>
-                                <td>Data Feeds</td>
-                                <td><span class="label label-success">FREE</span></td>
-                                <td>Low</td>
-                            </tr>
-                            <tr>
-                                <td>Time-based auto-resolve</td>
-                                <td>Automation</td>
-                                <td>~$1/month</td>
-                                <td>Medium</td>
-                            </tr>
-                            <tr>
-                                <td>Event-based (sports, elections)</td>
-                                <td>Functions</td>
-                                <td>~$2.50/request</td>
-                                <td>High</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-                <p style="margin-top: 1rem;"><strong>Recommendation:</strong> Start with Price Feed markets (free,
-                    simple), add Automation for auto-resolve, then expand to Functions as needed.</p>
-            </div>
-        </section>
 
         <!-- PART 4: MULTI-CHAIN STRATEGY -->
         <div class="part-divider">
