@@ -55,16 +55,16 @@
                     </ul>
                 </div>
                 <div>
-                    <div class="toc-section-title">3부: 체인링크 통합</div>
+                    <div class="toc-section-title">3부: 오라클 통합</div>
                     <ul>
-                        <li><a href="#why-chainlink">3.1 시장 해결을 위한 체인링크</a></li>
-                        <li><a href="#chainlink-setup">3.2 체인링크 시작하기</a></li>
-                        <li><a href="#long-tail-markets">3.3 롱테일 시장 처리</a></li>
-                        <li><a href="#chainlink-products">3.4 체인링크 제품 개요</a></li>
-                        <li><a href="#resolution-arch">3.5 해결 아키텍처</a></li>
-                        <li><a href="#smart-contracts">3.6 스마트 컨트랙트 통합</a></li>
-                        <li><a href="#cost-security">3.7 비용 및 보안</a></li>
-                        <li><a href="#roadmap">3.8 구현 로드맵</a></li>
+                        <li><a href="#oracle-strategy">3.1 오라클 전략 및 비교</a></li>
+                        <li><a href="#uma-integration">3.2 낙관적 오라클 (UMA) 통합</a></li>
+                        <li><a href="#uma-spec">3.3 OptimisticOracleV3 사양</a></li>
+                        <li><a href="#chainlink-setup">3.4 체인링크 시작하기</a></li>
+                        <li><a href="#chainlink-products">3.5 체인링크 제품 개요</a></li>
+                        <li><a href="#resolution-arch">3.6 해결 아키텍처</a></li>
+                        <li><a href="#smart-contracts">3.7 스마트 컨트랙트 통합</a></li>
+                        <li><a href="#cost-security">3.8 비용 및 보안</a></li>
                     </ul>
                 </div>
                 <div>
@@ -1738,119 +1738,307 @@ Spain YES 500개만 남음
             </div>
         </section>
 
-        <!-- PART 3: CHAINLINK INTEGRATION -->
+        <!-- PART 3: ORACLE INTEGRATION -->
         <div class="part-divider">
-            <h2>3부: 체인링크 오라클 통합</h2>
-            <span class="part-subtitle">탈중앙화된 시장 해결</span>
+            <h2>3부: 오라클 통합</h2>
+            <span class="part-subtitle">탈중앙화된 시장 해결 전략</span>
         </div>
 
-        <!-- Section 3.1: Why Chainlink -->
-        <section id="why-chainlink" class="part-3-section">
-            <h3><span class="section-num part-3">3.1</span>시장 해결을 위한 체인링크</h3>
+        <!-- Section 3.1: Oracle Strategy -->
+        <section id="oracle-strategy" class="part-3-section">
+            <h3><span class="section-num part-3">3.1</span>오라클 전략 및 비교</h3>
 
-            <h4>현재 상태: 수동 해결</h4>
-            <div class="box box-danger">
-                <span class="box-title">수동 해결의 문제점</span>
-                <ul>
-                    <li><strong>중앙화된 신뢰:</strong> 관리자가 결과를 조작할 수 있음</li>
-                    <li><strong>검증 불가능한 출처:</strong> 사용자는 플랫폼을 신뢰해야 함</li>
-                    <li><strong>인적 오류 위험:</strong> 수동 프로세스는 실수하기 쉬움</li>
-                </ul>
+            <p>Nostra는 암호화폐 가격부터 틈새 지역 이벤트까지 다양한 시장 유형을 처리하기 위해 <strong>멀티 오라클 전략</strong>을 채택합니다. 우리는 하이브리드 AI와 낙관적
+                오라클을 사용하는 <strong>Opinion Labs</strong> 및 UMA를 사용하는 <strong>Polymarket</strong>과 같은 업계 선두주자들을 벤치마킹합니다.
+            </p>
+
+            <h4>비교 분석: 세 가지 오라클 계층</h4>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>오라클 유형</th>
+                            <th>메커니즘</th>
+                            <th>장점</th>
+                            <th>단점</th>
+                            <th>적합한 대상</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>수동 관리자 (Manual Admin)</strong></td>
+                            <td>신뢰할 수 있는 관리자 키로 결과 해결</td>
+                            <td>
+                                <ul>
+                                    <li>가장 빠름</li>
+                                    <li>가장 저렴함 (가스비만 발생)</li>
+                                    <li>유연함</li>
+                                </ul>
+                            </td>
+                            <td>
+                                <ul>
+                                    <li><strong>중앙화된 신뢰</strong></li>
+                                    <li>확장성 병목 현상</li>
+                                </ul>
+                            </td>
+                            <td>베타 출시, 테스트 시장, 비상 해결</td>
+                        </tr>
+                        <tr>
+                            <td><strong>체인링크 (Chainlink)</strong><br><span style="font-size:0.8em">(Functions /
+                                    Feeds)</span>
+                            </td>
+                            <td>탈중앙화 노드가 API/가격 데이터 가져옴</td>
+                            <td>
+                                <ul>
+                                    <li><strong>무신뢰 & 자동화</strong></li>
+                                    <li>업계 표준</li>
+                                    <li>즉시 정산</li>
+                                </ul>
+                            </td>
+                            <td>
+                                <ul>
+                                    <li>디지털 소스 필요 (API/URL)</li>
+                                    <li>비용 (LINK 토큰)</li>
+                                </ul>
+                            </td>
+                            <td>스포츠, 암호화폐 가격, 선거 결과 (API 존재 시)</td>
+                        </tr>
+                        <tr>
+                            <td><strong>UMA</strong><br><span style="font-size:0.8em">(낙관적 오라클)</span></td>
+                            <td>"이의 제기 전까지 진실" + 투표 배심원</td>
+                            <td>
+                                <ul>
+                                    <li><strong>모든 임의의 이벤트</strong></li>
+                                    <li>API 불필요 (사람 검증)</li>
+                                    <li>암호경제학적 보안</li>
+                                </ul>
+                            </td>
+                            <td>
+                                <ul>
+                                    <li><strong>느림</strong> (2시간+ 이의 제기 기간)</li>
+                                    <li>복잡한 게임 이론</li>
+                                </ul>
+                            </td>
+                            <td>롱테일 이벤트, "의견" 기반 시장 (예: "AI가 지배할까?")</td>
+                        </tr>
+                    </tbody>
+                </table>
             </div>
 
-            <h4>체인링크 솔루션</h4>
-            <div class="box box-success">
-                <span class="box-title">체인링크 해결의 이점</span>
+            <div class="box box-highlight">
+                <span class="box-title">벤치마크: Opinion Labs 전략</span>
+                <p>Opinion Labs는 정교한 <strong>하이브리드 오라클</strong> 접근 방식을 사용합니다:</p>
                 <ul>
-                    <li><strong>탈중앙화 오라클 네트워크:</strong> 다수의 노드가 데이터 검증</li>
-                    <li><strong>검증 가능한 데이터 소스:</strong> 진본성에 대한 암호학적 증명</li>
-                    <li><strong>무신뢰 자동화:</strong> 사람의 개입 불필요</li>
-                    <li><strong>업계 표준:</strong> 입증된 보안 기록</li>
+                    <li><strong>AI 오라클 (Opinion AI):</strong> 데이터를 수집/요약하고 결과를 제안하는 첫 번째 단계.</li>
+                    <li><strong>낙관적 오라클 (UMA):</strong> 최종 보안 계층. AI가 틀리면 사람이 UMA를 통해 이의를 제기할 수 있음.</li>
                 </ul>
+                <p>Nostra는 비정형 시장을 위해 이 <strong>"낙관적 검증"</strong> 패턴을 채택할 것입니다.</p>
             </div>
 
-            <div style="margin: 2rem 0; text-align: center;">
-                <img src="images/chainlink-architecture.png" alt="Chainlink Architecture"
-                    style="max-width: 100%; border-radius: 12px; border: 1px solid var(--border); box-shadow: var(--shadow-md);">
-                <p style="font-size: 0.8125rem; color: var(--text-muted); margin-top: 0.5rem;">체인링크 탈중앙화 오라클 네트워크
-                    (DON)
-                    아키텍처</p>
+            <h4>채택 로드맵: 단계별 진화</h4>
+            <div class="timeline">
+                <div class="timeline-item">
+                    <div class="timeline-content">
+                        <h5>1. 수동 관리자 (베타 / V1)</h5>
+                        <p><strong>목표:</strong> 시장 수요 및 UI/UX 검증.</p>
+                        <p><strong>방법:</strong> 관리자 키로 모든 시장 해결. 빠르고 무료지만 중앙화됨.</p>
+                    </div>
+                </div>
+                <div class="timeline-item">
+                    <div class="timeline-content">
+                        <h5>2. 하이브리드 통합 (V1.5)</h5>
+                        <p><strong>목표:</strong> 높은 거래량 시장 자동화.</p>
+                        <p><strong>방법:</strong> 스포츠 및 암호화폐 시장에 <strong>체인링크</strong> 도입. 롱테일 이벤트는 관리자가 유지.</p>
+                    </div>
+                </div>
+                <div class="timeline-item">
+                    <div class="timeline-content">
+                        <h5>3. 탈중앙화 롱테일 (V2.0)</h5>
+                        <p><strong>목표:</strong> 무허가 시장 생성.</p>
+                        <p><strong>방법:</strong> <strong>UMA (낙관적 오라클)</strong> 통합. 관리자 키는 "거부권"만 허용 (비상 브레이크).</p>
+                    </div>
+                </div>
+                <div class="timeline-item">
+                    <div class="timeline-content">
+                        <h5>4. 완전 탈중앙화 (DAO)</h5>
+                        <p><strong>목표:</strong> 멈출 수 없는 프로토콜.</p>
+                        <p><strong>방법:</strong> 관리자 키 제거. 시장은 오직 체인링크, UMA 또는 DAO 거버넌스에 의해서만 해결됨.</p>
+                    </div>
+                </div>
             </div>
         </section>
 
-        <!-- Section 3.2: Getting Started -->
+        <!-- Section 3.2: Optimistic Oracle (UMA) Integration -->
+        <section id="uma-integration" class="part-3-section">
+            <h3><span class="section-num part-3">3.2</span>낙관적 오라클 (UMA) 통합</h3>
+            <p>검증 가능한 온체인 데이터나 API를 사용할 수 없는 시장(예: "이 유튜버가 구독자 100만 명을 달성할까?" 또는 매우 주관적인 "의견" 시장)의 경우, 우리는 <strong>UMA의
+                    낙관적 오라클(Optimistic Oracle)</strong>을 활용합니다. 이를 통해 인간이 암호경제학적 보증을 바탕으로 시장을 해결할 수 있습니다.</p>
+
+            <h4>"낙관적" 메커니즘</h4>
+            <div class="grid-2">
+                <div class="card">
+                    <h4>진실의 흐름 (Flow of Truth)</h4>
+                    <ol style="font-size: 0.875rem; margin-bottom: 0;">
+                        <li><strong>주장 (Assert):</strong> 시장 생성자나 봇이 주장합니다: "결과 A가 승리했다."</li>
+                        <li><strong>이의 제기 기간 (Challenge Window):</strong> 2시간의 창이 열립니다.</li>
+                        <li><strong>이의 없음:</strong> 아무도 동의하지 않으면 주장이 진실이 됩니다. (낙관적 경로)</li>
+                        <li><strong>이의 제기 (Dispute):</strong> 누군가 이의를 제기하면(채권 스테이킹), UMA 토큰 보유자가 투표하여 결정합니다.</li>
+                    </ol>
+                </div>
+                <div class="card">
+                    <h4>작동 원리</h4>
+                    <ul style="font-size: 0.875rem; margin-bottom: 0;">
+                        <li><strong>거짓말 비용:</strong> 주장자는 채권(예: $100)을 걸어야 합니다. 거짓말을 하고 이의가 제기되면 이를 잃게 됩니다.</li>
+                        <li><strong>유권자 인센티브:</strong> UMA 유권자는 프로토콜 가치를 유지하기 위해 올바르게 투표하도록 인센티브를 받습니다.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <h4>해결 호출 흐름 (Call Flow)</h4>
+            <div class="diagram">
+                <div class="diagram-title">Nostra ↔ UMA ↔ 도전자(Challenger) 상호작용</div>
+                <div class="flow-steps">
+                    <div class="flow-step">
+                        <span class="step-number">1</span>
+                        <span class="step-text"><strong>진실 주장 (Assert)</strong><br>Nostra 컨트랙트</span>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step">
+                        <span class="step-number">2</span>
+                        <span class="step-text"><strong>모니터링</strong><br>제3자 키퍼 (Permissionless)</span>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step">
+                        <span class="step-number">3</span>
+                        <span class="step-text"><strong>이의 제기 (선택)</strong><br>UMA 컨트랙트</span>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step">
+                        <span class="step-number">4</span>
+                        <span class="step-text"><strong>정산 (Settle)</strong><br>지급 / 해결</span>
+                    </div>
+                </div>
+            </div>
+
+            <h4>하이브리드 구현: Opinion AI + UMA</h4>
+            <p>비정형 시장의 해결을 확장하기 위해, 우리는 Opinion Labs와 유사한 <strong>하이브리드 AI 접근 방식</strong>을 채택합니다. 이는 AI의 속도와 낙관적 오라클의
+                보안성을 결합한 것입니다.</p>
+            <div class="grid-2">
+                <div class="card">
+                    <h4>작동 방식</h4>
+                    <ol style="font-size: 0.875rem;">
+                        <li><strong>수집 및 분석:</strong> 오프체인 AI 에이전트(LLM)가 활성 시장과 관련 실세계 데이터(뉴스, 소셜 여론)를 지속적으로 모니터링합니다.
+                        </li>
+                        <li><strong>결과 제안:</strong> AI가 결과를 판정하고 <strong>주장자(Asserter)</strong>로서 UMA에 트랜잭션을 제출합니다.</li>
+                        <li><strong>인간 검토 (감시견):</strong> AI가 맞다면 시장은 빠르게 해결됩니다. AI가 환각(오류)을 보이면, 인간 감시자가 이의를 제기하여 채권을
+                            획득합니다.
+                        </li>
+                    </ol>
+                </div>
+                <div class="card">
+                    <h4>장점</h4>
+                    <ul style="font-size: 0.875rem;">
+                        <li><strong>확장성:</strong> AI는 24/7 수천 개의 롱테일 시장을 해결할 수 있습니다.</li>
+                        <li><strong>비용 효율성:</strong> 수동 관리자 개입의 필요성을 줄여줍니다.</li>
+                        <li><strong>안전성:</strong> UMA는 AI 오류에 대한 궁극적인 "킬 스위치" 역할을 합니다.</li>
+                    </ul>
+                </div>
+            </div>
+
+        </section>
+
+        <!-- Section 3.3: OptimisticOracleV3 Specification -->
+        <section id="uma-spec" class="part-3-section">
+            <h3><span class="section-num part-3">3.3</span>OptimisticOracleV3 사양</h3>
+            <p><a href="https://docs.uma.xyz/" target="_blank">OptimisticOracleV3</a>는 주장(assertion) 수명 주기를 관리하는 핵심
+                컨트랙트입니다. 이는 이의가 제기되지 않는 한
+                진실로 간주되는 <strong>에스컬레이션 게임(escalation game)</strong>을 활용합니다.</p>
+
+            <h4>핵심 함수 (Key Functions)</h4>
+            <div class="code-block-wrapper">
+                <pre>
+<span class="code-comment">// Core OOv3 Interface</span>
+<span class="code-keyword">interface</span> <span class="code-class">IOptimisticOracleV3</span> {
+    <span class="code-comment">/**
+     * @notice 세계 상태에 대한 진실을 주장합니다.
+     * @param claim 진술을 나타내는 인코딩된 데이터 또는 문자열 (예: "BTC > 50k at block 100").
+     * @param asserter 정답일 경우 채권을 돌려받을 주소.
+     * @param callbackRecipient 정산 시 알림을 받을 주소.
+     * @return assertionId 이 주장의 고유 ID.
+     */</span>
+    <span class="code-keyword">function</span> <span class="code-function">assertTruthWithDefaults</span>(
+        <span class="code-keyword">bytes calldata</span> claim,
+        <span class="code-keyword">address</span> asserter
+    ) <span class="code-keyword">external returns</span> (<span class="code-keyword">bytes32</span> assertionId);
+
+    <span class="code-comment">/**
+     * @notice 주장을 정산합니다. 활동 기간(Liveness Period) 이후에만 호출 가능합니다.
+     * @return bool 주장이 '진실'로 해결되었으면 true를 반환합니다.
+     */</span>
+    <span class="code-keyword">function</span> <span class="code-function">settleAndGetAssertionResult</span>(<span class="code-keyword">bytes32</span> assertionId) <span class="code-keyword">external returns</span> (<span class="code-keyword">bool</span>);
+
+    <span class="code-comment">/**
+     * @notice 상태 확인을 위한 View 함수.
+     */</span>
+    <span class="code-keyword">function</span> <span class="code-function">getAssertionResult</span>(<span class="code-keyword">bytes32</span> assertionId) <span class="code-keyword">external view returns</span> (<span class="code-keyword">bool</span>);
+}
+</pre>
+            </div>
+
+            <h4>Nostra 통합 로직</h4>
+            <ul style="font-size: 0.9rem;">
+                <li><strong>주장 (Assertion):</strong> 우리는 <code>assertTruthWithDefaults</code>를 호출합니다. 이는 주장자로부터
+                    <strong>최소 채권(Minimum
+                        Bond)</strong>(보통 WETH 또는 USDC)을 예치하게 합니다.
+                </li>
+                <li><strong>활동 기간 (Liveness Period):</strong> 기본값은 <strong>7200초(2시간)</strong>입니다. 이 기간 동안 모든 봇은
+                    `disputeAssertion`을 호출할 수 있습니다.</li>
+                <li><strong>정산 (Settlement):</strong> 이의 없이 기간이 종료되면, 우리는 <code>settleAndGetAssertionResult</code>를
+                    호출합니다.
+                    <code>true</code>가 반환되면 Nostra는 승자에게 지급을 처리합니다.
+                </li>
+            </ul>
+
+            <h4>이의 제기 흐름 (Dispute Flow)</h4>
+            <ul style="font-size: 0.9rem;">
+                <li><strong>모니터링 (Monitoring):</strong> 감시견(Watchdog) 봇이 실제 데이터와 주장을 대조하여 검증합니다.</li>
+                <li><strong>이의 제기 (Challenge):</strong> 불일치가 발견되면, 봇은 <code>disputeAssertion</code>을 호출합니다. 이 경우 판결은
+                    UMA의 데이터 검증 메커니즘(DVM)으로 넘어갑니다.</li>
+                <li><strong>DVM 투표 (DVM Voting):</strong> UMA 토큰 보유자들이 특정 진실에 대해 투표합니다.</li>
+                <li><strong>보상 (Reward):</strong> 이의 제기가 타당했다면, 도전자(Challenger)는 주장자(Asserter)의 채권을 포상금으로 받습니다.</li>
+            </ul>
+
+            <div class="box" style="border-left: 4px solid #ef4444; margin-top: 1.5rem;">
+                <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem;">
+                    <span style="font-size: 1.25rem;">🔴</span>
+                    <span class="box-title" style="margin: 0;">UMA 토큰의 역할</span>
+                </div>
+                <p style="margin-bottom: 0.5rem;">UMA 토큰은 DVM(데이터 검증 메커니즘) 작동에 필수적입니다:</p>
+                <ul style="font-size: 0.875rem; margin: 0;">
+                    <li><strong>투표권 (Voting Rights):</strong> 토큰 보유자는 분쟁이 발생한 결과(예: "후보자 X가 이겼는가?")에 대해 투표합니다.</li>
+                    <li><strong>경제적 보증 (Economic Guarantee):</strong> DVM을 매수하는 비용이 매수로 얻는 이익보다 커야 합니다 (매수
+                        비용 > 매수 이익).</li>
+                    <li><strong>바이백 및 소각 (Buyback & Burn):</strong> 사용되지 않은 보상이나 수수료는 UMA를 매입하고 소각하는 데 사용되어 인센티브를
+                        일치시킵니다.</li>
+                </ul>
+            </div>
+
+            <div class="box box-warning">
+                <span class="box-title">필수: "감시견" 봇 (Watchdog Bot)</span>
+                <p>낙관적 모델은 누군가 지켜보고 있을 때만 작동합니다. Nostra는 모든 활성 주장을 모니터링하는 <strong>감시견 봇</strong>을 운영(또는 장려)해야 합니다. 악의적인
+                    사용자가 거짓 결과를 주장하면, 봇은 이를 감지하고 이의를 제기하여 시장 참여자를 보호해야 합니다.</p>
+            </div>
+        </section>
+
+        <!-- Section 3.4: Getting Started with Chainlink -->
         <section id="chainlink-setup" class="part-3-section">
-            <h3><span class="section-num part-3">3.2</span>체인링크 시작하기</h3>
+            <h3><span class="section-num part-3">3.4</span>체인링크 시작하기</h3>
             <p>체인링크를 통합하려면 다음 단계가 필요합니다:</p>
             <ol>
                 <li><strong>LINK 토큰 확보:</strong> 오라클 서비스 비용 지불을 위해 필요합니다.</li>
                 <li><strong>구독 생성:</strong> Chainlink Functions 또는 Automation을 위한 구독을 생성하고 LINK를 충전합니다.</li>
                 <li><strong>컨트랙트 등록:</strong> Consumer 컨트랙트를 구독에 추가합니다.</li>
             </ol>
-        </section>
-
-        <!-- Section 3.3: Handling Long-tail Markets -->
-        <section id="long-tail-markets" class="part-3-section">
-            <h3><span class="section-num part-3">3.3</span>롱테일 및 비정형 시장 처리</h3>
-            <p><em>"지역 '우리들의 발라드' 노래자랑 우승자는 누구인가?"</em>와 같은 틈새 시장을 해결하고 싶다면 어떻게 해야 할까요?</p>
-
-            <h4>시나리오 A: 온라인에 데이터가 존재함</h4>
-            <div class="box box-highlight">
-                <span class="box-title">솔루션: Chainlink Functions</span>
-                <p>결과가 공식 웹사이트, 뉴스 기사 또는 위키피디아에 게시된 경우:</p>
-                <ol>
-                    <li><strong>개발자</strong>가 우승자 이름을 스크래핑하는 자바스크립트 스크립트를 작성합니다 (예: <code>div.winner</code>에서).
-                    </li>
-                    <li><strong>체인링크 노드 (DON)</strong>가 이 스크립트를 실행하고 데이터를 가져옵니다.</li>
-                    <li><strong>합의</strong>에 도달하면 결과("김철수")가 온체인으로 전달됩니다.
-                    </li>
-                </ol>
-                <p style="color: #166534; font-weight: 500; margin-top: 0.5rem;">✓ 최적: 검증 가능한 디지털 데이터 소스.</p>
-            </div>
-
-            <h4>시나리오 B: 디지털 발자국 없음</h4>
-            <div class="box box-danger">
-                <span class="box-title">한계점</span>
-                <p>대회가 너무 작아서 뉴스에도 안 나오고 웹사이트도 없다면, <strong>체인링크는 해결할 수 없습니다</strong>. 체인링크는 현실 세계의 데이터를 배달하는 서비스이지,
-                    진실을
-                    창조하는
-                    존재가 아닙니다.</p>
-            </div>
-
-            <h4>대안: UMA (낙관적 오라클)</h4>
-            <p>API가 없는 비정형 롱테일 시장의 경우, <strong>UMA</strong>는 사람이 검증하는 솔루션을 제공합니다 (Polymarket 사용).</p>
-
-            <div class="grid-2">
-                <div class="card">
-                    <h4>UMA 작동 방식</h4>
-                    <ol style="font-size: 0.875rem;">
-                        <li><strong>제안:</strong> 누구나 "김철수가 우승했다"고 주장합니다.</li>
-                        <li><strong>이의 제기 기간:</strong> 분쟁을 위한 창(예: 2시간)이 열립니다.</li>
-                        <li><strong>확정:</strong> 이의가 없으면 답변이 수락됩니다.</li>
-                        <li><strong>분쟁:</strong> 이의가 제기되면 토큰 보유자가 투표하여 진실을 결정합니다.</li>
-                    </ol>
-                </div>
-                <div class="card">
-                    <h4>장단점</h4>
-                    <ul style="font-size: 0.875rem;">
-                        <li><span style="color: #166534;">✓</span> 사람이 검증할 수 있는 모든 질문에 작동.</li>
-                        <li><span style="color: #166534;">✓</span> API 불필요.</li>
-                        <li><span style="color: #991b1b;">✗</span> 느림 (이의 제기 기간 필요).</li>
-                        <li><span style="color: #991b1b;">✗</span> 더 복잡한 게임 이론.</li>
-                    </ul>
-                </div>
-            </div>
-
-            <div class="box box-warning">
-                <span class="box-title">요약: 올바른 오라클 선택</span>
-                <ul>
-                    <li><strong>웹사이트/API 존재</strong> → <span class="label label-primary">Chainlink
-                            Functions</span> (가장 깔끔하고 빠름)</li>
-                    <li><strong>디지털 정보 없음</strong> → <span class="label label-warning">UMA (낙관적)</span> 또는
-                        <span class="label label-danger">수동 관리자</span> (가장 저렴함)
-                    </li>
-                </ul>
-            </div>
         </section>
 
         <!-- Section 3.4: Chainlink Products -->
@@ -2149,49 +2337,7 @@ ETH/USD: 0xF0d50568e3A7e8259E16663972b11910F89BD8e7</pre>
             </div>
         </section>
 
-        <!-- Section 3.8: Implementation Roadmap -->
-        <section id="roadmap" class="part-3-section">
-            <h3><span class="section-num part-3">3.8</span>구현 로드맵</h3>
 
-            <div class="grid-2">
-                <div class="card">
-                    <h4>1단계: Price Feed 시장 (1-2주차)</h4>
-                    <ul style="font-size: 0.875rem;">
-                        <li>PriceFeedResolver 컨트랙트 배포</li>
-                        <li>BTC/USD, ETH/USD 피드로 테스트</li>
-                        <li>"BTC가 넘을까?" 시장 생성</li>
-                        <li>프론트엔드 해결 페이지 업데이트</li>
-                    </ul>
-                </div>
-                <div class="card">
-                    <h4>2단계: 자동화 (3주차)</h4>
-                    <ul style="font-size: 0.875rem;">
-                        <li>리졸버에 AutomationCompatible 추가</li>
-                        <li>체인링크에 Upkeep 등록</li>
-                        <li>마감 시 자동 해결 테스트</li>
-                        <li>가스 설정 모니터링 및 조정</li>
-                    </ul>
-                </div>
-                <div class="card">
-                    <h4>3단계: Functions (4-5주차)</h4>
-                    <ul style="font-size: 0.875rem;">
-                        <li>Functions 구독 설정</li>
-                        <li>FunctionsResolver 컨트랙트 배포</li>
-                        <li>스포츠 API용 자바스크립트 작성</li>
-                        <li>엣지 케이스 처리 (API 다운 등)</li>
-                    </ul>
-                </div>
-                <div class="card">
-                    <h4>4단계: 프로덕션 (6주차)</h4>
-                    <ul style="font-size: 0.875rem;">
-                        <li>보안 감사</li>
-                        <li>메인넷 배포</li>
-                        <li>모니터링 대시보드</li>
-                        <li>관리자 폴백 절차</li>
-                    </ul>
-                </div>
-            </div>
-        </section>
 
         <!-- PART 4: MULTI-CHAIN STRATEGY -->
         <div class="part-divider">
