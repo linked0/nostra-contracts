@@ -14,7 +14,7 @@
 </head>
 
 <body>
-    <div class="container">
+    <div class="container" style="max-width: 95%;">
         <header>
             <div class="lang-switch">
                 <a href="index.html" class="lang-link">🇺🇸 English</a>
@@ -2204,7 +2204,7 @@ ETH/USD: 0xF0d50568e3A7e8259E16663972b11910F89BD8e7</pre>
             <h3><span class="section-num part-4">4.1</span>배포 네트워크</h3>
 
             <h4>전략적 우선순위</h4>
-            <div class="grid-3">
+            <div class="grid-4">
                 <div class="card">
                     <h4>낮은 트랜잭션 수수료</h4>
                     <p>예측 시장은 빈번한 상호작용(구매, 판매, 청구)을 필요로 합니다. 가스비는 $0.01 미만이어야 합니다.</p>
@@ -2216,6 +2216,10 @@ ETH/USD: 0xF0d50568e3A7e8259E16663972b11910F89BD8e7</pre>
                 <div class="card">
                     <h4>EVM 호환성</h4>
                     <p>기존 도구, 지갑(MetaMask), 체인링크 서비스를 지원하기 위해 필수적입니다.</p>
+                </div>
+                <div class="card">
+                    <h4>빠른 거래 확정</h4>
+                    <p>트레이딩은 즉각적인 반응이 필수입니다. UX를 위해 2초 미만의 블록 타임(Polygon/BSC/Monad)이 선호됩니다.</p>
                 </div>
             </div>
 
@@ -2279,6 +2283,7 @@ ETH/USD: 0xF0d50568e3A7e8259E16663972b11910F89BD8e7</pre>
                             <th>카테고리</th>
                             <th>네트워크</th>
                             <th>가스비 (Gas Fee)</th>
+                            <th>평균 블록 시간</th>
                             <th>장점</th>
                             <th>단점</th>
                             <th>결론</th>
@@ -2287,10 +2292,11 @@ ETH/USD: 0xF0d50568e3A7e8259E16663972b11910F89BD8e7</pre>
                     <tbody>
                         <!-- L1 / Sidechains -->
                         <tr>
-                            <td rowspan="3" style="background: rgba(var(--accent-rgb), 0.05);"><strong>L1 /
+                            <td rowspan="6" style="background: rgba(var(--accent-rgb), 0.05);"><strong>L1 /
                                     사이드체인</strong></td>
                             <td><strong>Polygon PoS</strong></td>
                             <td><span style="color: var(--success); font-weight: 600;">~ $0.001 (약 1.5원)</span></td>
+                            <td>~ 2.1초</td>
                             <td>
                                 <ul>
                                     <li>극도로 낮은 수수료</li>
@@ -2304,6 +2310,7 @@ ETH/USD: 0xF0d50568e3A7e8259E16663972b11910F89BD8e7</pre>
                         <tr>
                             <td><strong>BNB Smart Chain (BSC)</strong></td>
                             <td><span style="color: var(--success); font-weight: 600;">~ $0.03 (약 45원)</span></td>
+                            <td>~ 3.0초</td>
                             <td>
                                 <ul>
                                     <li>거대한 글로벌 사용자 기반</li>
@@ -2318,6 +2325,7 @@ ETH/USD: 0xF0d50568e3A7e8259E16663972b11910F89BD8e7</pre>
                             <td><strong>Monad</strong></td>
                             <td><span style="color: var(--success); font-weight: 600;">&lt; $0.001 (약 1원 미만)</span>
                             </td>
+                            <td>1.0초</td>
                             <td>
                                 <ul>
                                     <li>10,000 TPS (병렬 EVM)</li>
@@ -2334,15 +2342,70 @@ ETH/USD: 0xF0d50568e3A7e8259E16663972b11910F89BD8e7</pre>
                             </td>
                             <td><span class="label label-warning">미래의 강자</span></td>
                         </tr>
+                        <tr>
+                            <td><strong>Monero (XMR)</strong></td>
+                            <td><span style="color: var(--success); font-weight: 600;">낮음</span></td>
+                            <td>~ 2분</td>
+                            <td>
+                                <ul>
+                                    <li><strong>완전한 익명성</strong> (링 서명)</li>
+                                    <li>검열 저항성</li>
+                                </ul>
+                            </td>
+                            <td>
+                                <ul>
+                                    <li><strong>스마트 컨트랙트 미지원</strong></li>
+                                    <li>느린 확정 속도</li>
+                                </ul>
+                            </td>
+                            <td><span class="label label-danger">호환 불가</span></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Zcash (ZEC)</strong></td>
+                            <td><span style="color: var(--success); font-weight: 600;">낮음</span></td>
+                            <td>~ 75초</td>
+                            <td>
+                                <ul>
+                                    <li>선택적 익명성 (zk-SNARKs)</li>
+                                </ul>
+                            </td>
+                            <td>
+                                <ul>
+                                    <li><strong>스마트 컨트랙트 미지원</strong></li>
+                                    <li>UTXO 모델</li>
+                                </ul>
+                            </td>
+                            <td><span class="label label-danger">호환 불가</span></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Hyperliquid</strong></td>
+                            <td><span style="color: var(--success); font-weight: 600;">~ $0.00</span></td>
+                            <td>&lt; 1초</td>
+                            <td>
+                                <ul>
+                                    <li><strong>압도적인 속도</strong> (200k TPS)</li>
+                                    <li>HyperEVM (커스텀 컨트랙트)</li>
+                                    <li>네이티브 영구선물 유동성</li>
+                                </ul>
+                            </td>
+                            <td>
+                                <ul>
+                                    <li>별도의 L1 (브릿징 필요)</li>
+                                    <li>신생 생태계</li>
+                                </ul>
+                            </td>
+                            <td><span class="label label-success">강력한 경쟁자</span></td>
+                        </tr>
 
                         <!-- L2s -->
                         <tr>
-                            <td rowspan="2" style="background: rgba(var(--accent-rgb), 0.05);"><strong>레이어
+                            <td rowspan="4" style="background: rgba(var(--accent-rgb), 0.05);"><strong>레이어
                                     2</strong>
                             </td>
                             <td><strong>Base</strong></td>
                             <td><span style="color: var(--success); font-weight: 600;">&lt; $0.01 (약 15원 미만)</span>
                             </td>
+                            <td>즉시 (~2초)</td>
                             <td>
                                 <ul>
                                     <li>Coinbase 통합 (쉬운 온보딩)</li>
@@ -2356,6 +2419,7 @@ ETH/USD: 0xF0d50568e3A7e8259E16663972b11910F89BD8e7</pre>
                         <tr>
                             <td><strong>Arbitrum One</strong></td>
                             <td><span style="color: var(--warning); font-weight: 600;">~ $0.10 (약 150원)</span></td>
+                            <td>즉시 (~0.25초)</td>
                             <td>
                                 <ul>
                                     <li>가장 높은 L2 TVL</li>
@@ -2364,6 +2428,38 @@ ETH/USD: 0xF0d50568e3A7e8259E16663972b11910F89BD8e7</pre>
                             </td>
                             <td>Polygon/BSC보다 약간 높은 수수료</td>
                             <td><span class="label label-primary">대안</span></td>
+                        </tr>
+                        <tr>
+                            <td><strong>zkSync Era</strong></td>
+                            <td><span style="color: var(--success); font-weight: 600;">~ $0.05 (약 70원)</span></td>
+                            <td>즉시 (~1초)</td>
+                            <td>
+                                <ul>
+                                    <li>네이티브 계정 추상화 (AA)</li>
+                                    <li><strong>스마트 컨트랙트 지원</strong></li>
+                                    <li>ZK 보안 (Zero-Knowledge)</li>
+                                </ul>
+                            </td>
+                            <td>생태계 파편화</td>
+                            <td><span class="label label-primary">좋은 대안</span></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Lighter</strong></td>
+                            <td><span style="color: var(--success); font-weight: 600;">낮음</span></td>
+                            <td>즉시</td>
+                            <td>
+                                <ul>
+                                    <li>오더북 최적화</li>
+                                    <li>검증된 속도</li>
+                                </ul>
+                            </td>
+                            <td>
+                                <ul>
+                                    <li><strong>앱 특화 체인 (App-Specific)</strong></li>
+                                    <li><strong>사용자 컨트랙트 배포 불가</strong></li>
+                                </ul>
+                            </td>
+                            <td><span class="label label-danger">호환 불가</span></td>
                         </tr>
                     </tbody>
                 </table>

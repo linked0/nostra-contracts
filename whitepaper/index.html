@@ -14,7 +14,7 @@
 </head>
 
 <body>
-    <div class="container">
+    <div class="container" style="max-width: 95%;">
         <header>
             <div class="lang-switch">
                 <a href="ko.html" class="lang-link">🇰🇷 한국어</a>
@@ -3012,7 +3012,7 @@ ETH/USD: 0xF0d50568e3A7e8259E16663972b11910F89BD8e7</pre>
             <h3><span class="section-num part-4">4.1</span>Deployment Networks</h3>
 
             <h4>Strategic Priorities</h4>
-            <div class="grid-3">
+            <div class="grid-4">
                 <div class="card">
                     <h4>Low Transaction Fees</h4>
                     <p>Prediction markets require frequent interaction (buying, selling, claiming). Gas must be &lt;
@@ -3025,6 +3025,11 @@ ETH/USD: 0xF0d50568e3A7e8259E16663972b11910F89BD8e7</pre>
                 <div class="card">
                     <h4>EVM Compatibility</h4>
                     <p>Essential for supporting existing tooling, wallets (MetaMask), and Chainlink services.</p>
+                </div>
+                <div class="card">
+                    <h4>Fast Confirmation</h4>
+                    <p>Trading requires instant feedback. Sub-2s block time (like Polygon/BSC/Monad) is preferred for
+                        UX.</p>
                 </div>
             </div>
 
@@ -3091,6 +3096,7 @@ ETH/USD: 0xF0d50568e3A7e8259E16663972b11910F89BD8e7</pre>
                             <th>Category</th>
                             <th>Network</th>
                             <th>Gas Fee</th>
+                            <th>Avg. Block Time</th>
                             <th>Pros</th>
                             <th>Cons</th>
                             <th>Verdict</th>
@@ -3099,10 +3105,11 @@ ETH/USD: 0xF0d50568e3A7e8259E16663972b11910F89BD8e7</pre>
                     <tbody>
                         <!-- L1 / Sidechains -->
                         <tr>
-                            <td rowspan="3" style="background: rgba(var(--accent-rgb), 0.05);"><strong>L1 /
+                            <td rowspan="6" style="background: rgba(var(--accent-rgb), 0.05);"><strong>L1 /
                                     Sidechain</strong></td>
                             <td><strong>Polygon PoS</strong></td>
                             <td><span style="color: var(--success); font-weight: 600;">~ $0.001</span></td>
+                            <td>~ 2.1s</td>
                             <td>
                                 <ul>
                                     <li>Extremely low fees</li>
@@ -3116,6 +3123,7 @@ ETH/USD: 0xF0d50568e3A7e8259E16663972b11910F89BD8e7</pre>
                         <tr>
                             <td><strong>BNB Smart Chain (BSC)</strong></td>
                             <td><span style="color: var(--success); font-weight: 600;">~ $0.03</span></td>
+                            <td>~ 3.0s</td>
                             <td>
                                 <ul>
                                     <li>Huge global user base</li>
@@ -3129,6 +3137,7 @@ ETH/USD: 0xF0d50568e3A7e8259E16663972b11910F89BD8e7</pre>
                         <tr>
                             <td><strong>Monad</strong></td>
                             <td><span style="color: var(--success); font-weight: 600;">&lt; $0.001</span></td>
+                            <td>1.0s</td>
                             <td>
                                 <ul>
                                     <li>10,000 TPS (Parallel EVM)</li>
@@ -3145,13 +3154,68 @@ ETH/USD: 0xF0d50568e3A7e8259E16663972b11910F89BD8e7</pre>
                             </td>
                             <td><span class="label label-warning">Future Contender</span></td>
                         </tr>
+                        <tr>
+                            <td><strong>Monero (XMR)</strong></td>
+                            <td><span style="color: var(--success); font-weight: 600;">Low</span></td>
+                            <td>~ 2 mins</td>
+                            <td>
+                                <ul>
+                                    <li><strong>Total Privacy</strong> (Ring Signatures)</li>
+                                    <li>Censorship Resistant</li>
+                                </ul>
+                            </td>
+                            <td>
+                                <ul>
+                                    <li><strong>No Smart Contracts</strong></li>
+                                    <li>Slow Confirmation</li>
+                                </ul>
+                            </td>
+                            <td><span class="label label-danger">Incompatible</span></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Zcash (ZEC)</strong></td>
+                            <td><span style="color: var(--success); font-weight: 600;">Low</span></td>
+                            <td>~ 75s</td>
+                            <td>
+                                <ul>
+                                    <li>Optional Privacy (zk-SNARKs)</li>
+                                </ul>
+                            </td>
+                            <td>
+                                <ul>
+                                    <li><strong>No Smart Contracts</strong></li>
+                                    <li>UTXO Model</li>
+                                </ul>
+                            </td>
+                            <td><span class="label label-danger">Incompatible</span></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Hyperliquid</strong></td>
+                            <td><span style="color: var(--success); font-weight: 600;">~ $0.00</span></td>
+                            <td>&lt; 1s</td>
+                            <td>
+                                <ul>
+                                    <li><strong>Unmatched Speed</strong> (200k TPS)</li>
+                                    <li>HyperEVM (Custom Contracts)</li>
+                                    <li>Native Perps Liquidity</li>
+                                </ul>
+                            </td>
+                            <td>
+                                <ul>
+                                    <li>Separate L1 (Bridging needed)</li>
+                                    <li>Newer Ecosystem</li>
+                                </ul>
+                            </td>
+                            <td><span class="label label-success">Strong Contender</span></td>
+                        </tr>
 
                         <!-- L2s -->
                         <tr>
-                            <td rowspan="2" style="background: rgba(var(--accent-rgb), 0.05);"><strong>Layer 2</strong>
+                            <td rowspan="4" style="background: rgba(var(--accent-rgb), 0.05);"><strong>Layer 2</strong>
                             </td>
                             <td><strong>Base</strong></td>
                             <td><span style="color: var(--success); font-weight: 600;">&lt; $0.01</span></td>
+                            <td>Instant (~2s)</td>
                             <td>
                                 <ul>
                                     <li>Coinbase integration (easy onboarding)</li>
@@ -3165,6 +3229,7 @@ ETH/USD: 0xF0d50568e3A7e8259E16663972b11910F89BD8e7</pre>
                         <tr>
                             <td><strong>Arbitrum One</strong></td>
                             <td><span style="color: var(--warning); font-weight: 600;">~ $0.10</span></td>
+                            <td>Instant (~0.25s)</td>
                             <td>
                                 <ul>
                                     <li>Highest L2 TVL</li>
@@ -3173,6 +3238,38 @@ ETH/USD: 0xF0d50568e3A7e8259E16663972b11910F89BD8e7</pre>
                             </td>
                             <td>Fees slightly higher than Polygon/BSC</td>
                             <td><span class="label label-primary">Alternative</span></td>
+                        </tr>
+                        <tr>
+                            <td><strong>zkSync Era</strong></td>
+                            <td><span style="color: var(--success); font-weight: 600;">~ $0.05</span></td>
+                            <td>Instant (~1s)</td>
+                            <td>
+                                <ul>
+                                    <li>Native Account Abstraction</li>
+                                    <li><strong>Supports Smart Contracts</strong></li>
+                                    <li>ZK Security</li>
+                                </ul>
+                            </td>
+                            <td>Ecosystem fragmentation</td>
+                            <td><span class="label label-primary">Good Alternative</span></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Lighter</strong></td>
+                            <td><span style="color: var(--success); font-weight: 600;">Low</span></td>
+                            <td>Instant</td>
+                            <td>
+                                <ul>
+                                    <li>Optimized for Orderbooks</li>
+                                    <li>Proven Speed</li>
+                                </ul>
+                            </td>
+                            <td>
+                                <ul>
+                                    <li><strong>App-Specific Chain</strong></li>
+                                    <li><strong>Cannot deploy user contracts</strong></li>
+                                </ul>
+                            </td>
+                            <td><span class="label label-danger">Incompatible</span></td>
                         </tr>
                     </tbody>
                 </table>
