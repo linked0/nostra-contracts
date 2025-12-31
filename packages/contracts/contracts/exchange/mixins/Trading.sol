@@ -168,59 +168,82 @@ abstract contract Trading is ITrading {
         // Transfer takerOrder making amount from taker order to the Exchange
         _transfer(takerOrder.maker, address(this), makerAssetId, making);
 
-        // Fill the maker orders and track collateral consumed
-        uint256 totalCollateralConsumed = _fillMakerOrders(takerOrder, makerOrders, makerFillAmounts);
+        // Fill the maker orders and track collateral flow
+        // collateralFlow[0] = consumed (for BUY taker refund)
+        // collateralFlow[1] = received (for SELL taker actual USDC)
+        uint256[2] memory collateralFlow;
+        (collateralFlow[0], collateralFlow[1]) = _fillMakerOrders(takerOrder, makerOrders, makerFillAmounts);
 
-        taking = _updateTakingWithSurplus(taking, takerAssetId);
-        uint256 fee = CalculatorHelper.calculateFee(
-            takerOrder.feeRateBps, takerOrder.side == Side.BUY ? taking : making, making, taking, takerOrder.side
-        );
+        // For COMPLEMENTARY SELL matches (takerAssetId == 0):
+        //   - Use actual USDC received from maker BID fills instead of truncated `taking`
+        //   - This prevents cumulative precision loss across multiple fills
+        // For COMPLEMENTARY BUY matches:
+        //   - Only internal balances change, so _getBalance(0) returns ALL ERC20 USDC (wrong!)
+        //   - Skip surplus calculation, use the already correct `taking` value
+        // For MINT/MERGE matches or CTF tokens:
+        //   - Actual ERC20 transfers happen, so _getBalance works correctly
+        if (takerAssetId == 0 && collateralFlow[1] > 0) {
+            // COMPLEMENTARY SELL: use actual USDC received from maker BID fills
+            taking = collateralFlow[1];
+        } else if (takerAssetId != 0) {
+            taking = _updateTakingWithSurplus(taking, takerAssetId);
+        }
 
-        // Execute transfers
+        // Execute transfers using scoped block to reduce stack depth
+        {
+            uint256 fee = CalculatorHelper.calculateFee(
+                takerOrder.feeRateBps, takerOrder.side == Side.BUY ? taking : making, making, taking, takerOrder.side
+            );
 
-        // Transfer order proceeds post fees from the Exchange to the taker order maker
-        _transfer(address(this), takerOrder.maker, takerAssetId, taking - fee);
+            // Transfer order proceeds post fees from the Exchange to the taker order maker
+            _transfer(address(this), takerOrder.maker, takerAssetId, taking - fee);
 
-        // Charge the fee to taker order maker, explicitly transferring the fee from the Exchange to the Operator
-        _chargeFee(address(this), msg.sender, takerAssetId, fee);
+            // Charge the fee to taker order maker, explicitly transferring the fee from the Exchange to the Operator
+            _chargeFee(address(this), msg.sender, takerAssetId, fee);
+
+            emit OrderFilled(
+                orderHash, takerOrder.maker, address(this), makerAssetId, takerAssetId, making, taking, fee
+            );
+        }
 
         // Refund any leftover tokens pulled from the taker to the taker order
-        // For COMPLEMENTARY BUY matches (makerAssetId == 0 and totalCollateralConsumed > 0):
+        // For COMPLEMENTARY BUY matches (makerAssetId == 0 and collateralFlow[0] > 0):
         //   - Only internal balances change, so _getBalance(0) returns ALL ERC20 USDC (wrong!)
         //   - Calculate refund from consumed amount instead
-        // For MINT/MERGE (totalCollateralConsumed == 0) and CTF tokens:
+        // For MINT/MERGE (collateralFlow[0] == 0) and CTF tokens:
         //   - Actual ERC20 transfers happen, so _getBalance works correctly
-        uint256 refund;
-        if (makerAssetId == 0 && totalCollateralConsumed > 0) {
-            // COMPLEMENTARY BUY: calculate refund manually
-            refund = making > totalCollateralConsumed ? making - totalCollateralConsumed : 0;
-        } else {
-            // MINT/MERGE or CTF tokens: use actual balance (works correctly)
-            refund = _getBalance(makerAssetId);
+        {
+            uint256 refund;
+            if (makerAssetId == 0 && collateralFlow[0] > 0) {
+                // COMPLEMENTARY BUY: calculate refund manually
+                refund = making > collateralFlow[0] ? making - collateralFlow[0] : 0;
+            } else {
+                // MINT/MERGE or CTF tokens: use actual balance (works correctly)
+                refund = _getBalance(makerAssetId);
+            }
+            if (refund > 0) _transfer(address(this), takerOrder.maker, makerAssetId, refund);
         }
-        if (refund > 0) _transfer(address(this), takerOrder.maker, makerAssetId, refund);
-
-        emit OrderFilled(
-            orderHash, takerOrder.maker, address(this), makerAssetId, takerAssetId, making, taking, fee
-        );
 
         emit OrdersMatched(orderHash, takerOrder.maker, makerAssetId, takerAssetId, making, taking);
     }
 
     function _fillMakerOrders(Order memory takerOrder, Order[] memory makerOrders, uint256[] memory makerFillAmounts)
         internal
-        returns (uint256 totalCollateralConsumed)
+        returns (uint256 totalCollateralConsumed, uint256 totalCollateralReceived)
     {
         uint256 length = makerOrders.length;
         uint256 i = 0;
         totalCollateralConsumed = 0;
+        totalCollateralReceived = 0;
         for (; i < length;) {
-            totalCollateralConsumed += _fillMakerOrder(takerOrder, makerOrders[i], makerFillAmounts[i]);
+            (uint256 consumed, uint256 received) = _fillMakerOrder(takerOrder, makerOrders[i], makerFillAmounts[i]);
+            totalCollateralConsumed += consumed;
+            totalCollateralReceived += received;
             unchecked {
                 ++i;
             }
         }
-        return totalCollateralConsumed;
+        return (totalCollateralConsumed, totalCollateralReceived);
     }
 
     /// @notice Fills a Maker order
@@ -228,7 +251,8 @@ abstract contract Trading is ITrading {
     /// @param makerOrder - The maker order
     /// @param fillAmount - The fill amount
     /// @return collateralConsumed - Amount of collateral consumed by this fill (for USDC refund calculation)
-    function _fillMakerOrder(Order memory takerOrder, Order memory makerOrder, uint256 fillAmount) internal returns (uint256 collateralConsumed) {
+    /// @return collateralReceived - Amount of collateral received by this fill (for USDC payment to SELL taker)
+    function _fillMakerOrder(Order memory takerOrder, Order memory makerOrder, uint256 fillAmount) internal returns (uint256 collateralConsumed, uint256 collateralReceived) {
         MatchType matchType = _deriveMatchType(takerOrder, makerOrder);
 
         // Ensure taker order and maker order match
@@ -251,18 +275,23 @@ abstract contract Trading is ITrading {
             orderHash, makerOrder.maker, takerOrder.maker, makerAssetId, takerAssetId, making, taking, fee
         );
 
-        // Track collateral consumed for COMPLEMENTARY matches only.
+        // Track collateral flow for COMPLEMENTARY matches only.
         // For MINT/MERGE, actual ERC20 transfers happen via ConditionalTokens, so _getBalance works.
         // For COMPLEMENTARY (BUY vs SELL), only internal balances change, so we need to track manually.
-        if (matchType == MatchType.COMPLEMENTARY && takerOrder.side == Side.BUY) {
-            // Taker is BUY: their USDC goes to maker seller = taking - fee
-            collateralConsumed = taking - fee;
-        } else {
-            // MINT/MERGE: use 0 to indicate _getBalance should be used
-            // SELL taker: no collateral consumed (taker receives USDC)
-            collateralConsumed = 0;
+        collateralConsumed = 0;
+        collateralReceived = 0;
+        if (matchType == MatchType.COMPLEMENTARY) {
+            if (takerOrder.side == Side.BUY) {
+                // Taker is BUY: their USDC goes to maker seller = taking - fee
+                collateralConsumed = taking - fee;
+            } else {
+                // Taker is SELL: maker BID pays USDC = making (full amount, no deduction)
+                // For BID order (makerOrder.side == BUY): making = USDC, taking = shares
+                // The fee is deducted from shares, not USDC, so taker receives full USDC
+                collateralReceived = making;
+            }
         }
-        return collateralConsumed;
+        return (collateralConsumed, collateralReceived);
     }
 
     /// @notice Performs common order computations and validation

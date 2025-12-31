@@ -40,6 +40,7 @@
                         <li><a href="#shared-liquidity">1.8 공유 유동성 프로토콜</a></li>
                         <li><a href="#platform-economics">1.9 플랫폼 경제학</a></li>
                         <li><a href="#implementation">1.10 구현 고려사항</a></li>
+                        <li><a href="#decimal-precision">1.11 소수점 정밀도와 더스트</a></li>
                     </ul>
                 </div>
                 <div>
@@ -1005,6 +1006,100 @@ MM은 Chiefs YES 매도, Mahomes YES 매수 (헤지)
                     <li><strong>자체 유동성 공급:</strong> 초기에는 플랫폼이 직접 유동성 공급 (손실 감수)</li>
                     <li><strong>인센티브 프로그램:</strong> 초기 트레이더 및 LP에게 보상 제공</li>
                 </ol>
+            </div>
+        </section>
+
+        <!-- Section 1.11: Decimal Precision and Dust -->
+        <section id="decimal-precision" class="part-1-section">
+            <h3><span class="section-num part-1">1.11</span>소수점 정밀도와 더스트(Dust)</h3>
+            <p>고정소수점 연산이 예측 시장의 토큰 계산에 어떤 영향을 미치는지 이해합니다.</p>
+
+            <h4>정밀도 문제</h4>
+            <div class="box box-highlight">
+                <span class="box-title">예시: 55¢에서 $10 구매</span>
+                <pre
+                    style="font-size: 0.85rem; margin: 0.75rem 0; background: #1e293b; padding: 1rem; border-radius: 6px; color: #e2e8f0;">
+<span class="code-comment">// 수학적 계산</span>
+$10 / $0.55 = 18.181818181818181818... <span class="code-comment">(무한 반복)</span>
+
+<span class="code-comment">// 18자리 소수점 정밀도 (블록체인 한계)</span>
+저장값: 18.181818181818181818 <span class="code-comment">(잘림)</span>
+
+<span class="code-comment">// 역으로 곱해서 검증</span>
+18.181818181818181818 × $0.55 = $9.99999999999999999990
+
+<span class="code-comment">// "더스트"</span>
+$10.00000000000000000000
+-$9.99999999999999999990
+─────────────────────────
+ $0.00000000000000000010  ← <span class="code-keyword">정밀도 손실 (~0.00000000000000001 센트)</span></pre>
+            </div>
+
+            <h4>더스트는 어디로 가는가?</h4>
+            <p>CTFExchange에서 컨트랙트는 <strong>정수 나눗셈</strong>을 사용하며 항상 <strong>내림(round DOWN)</strong>합니다:</p>
+
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>작업</th>
+                            <th>더스트가 남는 곳</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>MINT</strong> (새 토큰 생성)</td>
+                            <td>CTFExchange의 내부 <code>balances</code> 매핑</td>
+                        </tr>
+                        <tr>
+                            <td><strong>COMPLEMENTARY</strong> (판매자와 매칭)</td>
+                            <td>판매자가 약간 적게 받거나, CTFExchange가 나머지 보유</td>
+                        </tr>
+                        <tr>
+                            <td><strong>MERGE</strong> (토큰을 담보로 환매)</td>
+                            <td>CTFExchange가 소수점 담보 보유</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="box box-info">
+                <span class="box-title">내부 잔액 원장</span>
+                <pre style="font-size: 0.85rem; margin: 0.75rem 0;">
+<span class="code-comment">// CTFExchange 컨트랙트 - 더스트가 여기에 누적됨</span>
+mapping(address => uint256) public balances;</pre>
+                <p style="margin-top: 0.5rem;">$10로 18.181818181818181818 shares를 구매할 때:</p>
+                <ul style="margin-top: 0.5rem; font-size: 0.9rem;">
+                    <li><strong>지불:</strong> $10.000000 USDC (CTFExchange로 전송됨)</li>
+                    <li><strong>수령:</strong> 18181818181818181818 shares (18자리 소수점)</li>
+                    <li><strong>더스트:</strong> ~$0.00000000000000000001가 CTFExchange에 남음</li>
+                </ul>
+            </div>
+
+            <h4>실질적 영향</h4>
+            <div class="grid-2">
+                <div class="card">
+                    <h4>거래당</h4>
+                    <ul>
+                        <li>더스트 금액: ~$0.00000000000000000001</li>
+                        <li>개별 거래에는 무시할 수 있는 수준</li>
+                        <li>"손실"이 아님 - 컨트랙트에 갇힐 뿐</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <h4>시간이 지나면</h4>
+                    <ul>
+                        <li>각 거래마다 누적됨</li>
+                        <li>수백만 건의 거래 = 총 몇 센트</li>
+                        <li>일부 프로토콜은 "더스트 수집" 기능 구현</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="box box-warning">
+                <span class="box-title">핵심 인사이트</span>
+                <p>1/0.55, 1/0.33 등과 같은 무한 반복 소수에서는 유한한 소수점으로 <strong>완벽한 가역성이 불가능</strong>합니다. 이는 블록체인의 모든 고정소수점 연산
+                    시스템에 내재된 특성입니다.</p>
             </div>
         </section>
 
