@@ -2,11 +2,11 @@
   "localhost": {
     "chainId": 31337,
     "contracts": {
-      "ConditionalTokens": "",
-      "MarketFactory": "",
-      "CTFExchange": "",
-      "ResolutionOracle": "",
-      "MockUSDC": ""
+      "ConditionalTokens": "0x5FbDB2315678afecb367f032d93F642f64180aa3",
+      "MarketFactory": "0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9",
+      "ResolutionOracle": "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0",
+      "CTFExchange": "0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9",
+      "MockUSDC": "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512"
     }
   },
   "polygon": {
@@ -40,11 +40,11 @@
   "bscTestnet": {
     "chainId": 97,
     "contracts": {
-      "ConditionalTokens": "0x05E242a457652A89febc25c168229Ca2c7D10Ba7",
-      "MarketFactory": "0xF6c75b2f8F796DAeB093e98Bfdd9D588C96BCe68",
-      "ResolutionOracle": "0x0ac4BBA43006E94eeA62CE58700C9cF1d3CEB9DD",
-      "CTFExchange": "0x514208e0877665a713D06fB4AF2F7a069702EF84",
-      "MockUSDC": "0x0c13e51297a27F995337a2029a117Bfb20e436c9"
+      "ConditionalTokens": "0x940FAeD69a0a2f6feD56003AA1Ea7593550769d1",
+      "MarketFactory": "0xf9E5C2344266e857006156b7207acc9F86170df3",
+      "ResolutionOracle": "0x651500Aff9E13E71F84150DAEBA472935BAbE8Cd",
+      "CTFExchange": "0x221CFeE5F50BaD1e6820ECb63Af3C4F40dd9b296",
+      "MockUSDC": "0xaC81b7939c5bbADC221de6A5bF860FBFD0619F3c"
     }
   }
 }

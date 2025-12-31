@@ -40,6 +40,7 @@
                         <li><a href="#shared-liquidity">1.8 Shared Liquidity Protocol</a></li>
                         <li><a href="#platform-economics">1.9 Platform Economics</a></li>
                         <li><a href="#implementation">1.10 Implementation Considerations</a></li>
+                        <li><a href="#decimal-precision">1.11 Decimal Precision and Dust</a></li>
                     </ul>
                 </div>
                 <div>
@@ -1318,6 +1319,101 @@ Only deposit what you can afford to lose.</pre>
                     bootstrapping.
                     Focus on building volume. External LPs and MMs will come after platform proves itself.
                 </p>
+            </div>
+        </section>
+
+        <!-- Section 1.11: Decimal Precision and Dust -->
+        <section id="decimal-precision" class="part-1-section">
+            <h3><span class="section-num part-1">1.11</span>Decimal Precision and Dust</h3>
+            <p>Understanding how fixed-point arithmetic affects token calculations in prediction markets.</p>
+
+            <h4>The Precision Problem</h4>
+            <div class="box box-highlight">
+                <span class="box-title">Example: $10 purchase at 55¢</span>
+                <pre
+                    style="font-size: 0.85rem; margin: 0.75rem 0; background: #1e293b; padding: 1rem; border-radius: 6px; color: #e2e8f0;">
+<span class="code-comment">// Mathematical calculation</span>
+$10 / $0.55 = 18.181818181818181818... <span class="code-comment">(infinite repeating)</span>
+
+<span class="code-comment">// With 18 decimal precision (blockchain limit)</span>
+Stored: 18.181818181818181818 <span class="code-comment">(truncated)</span>
+
+<span class="code-comment">// Multiply back to verify</span>
+18.181818181818181818 × $0.55 = $9.99999999999999999990
+
+<span class="code-comment">// The "dust"</span>
+$10.00000000000000000000
+-$9.99999999999999999990
+─────────────────────────
+ $0.00000000000000000010  ← <span class="code-keyword">Lost to precision (~0.00000000000000001 cents)</span></pre>
+            </div>
+
+            <h4>Where Does The Dust Go?</h4>
+            <p>In CTFExchange, the contract uses <strong>integer division</strong> which always <strong>rounds
+                    DOWN</strong>:</p>
+
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Operation</th>
+                            <th>Where Dust Stays</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>MINT</strong> (create new tokens)</td>
+                            <td>CTFExchange's internal <code>balances</code> mapping</td>
+                        </tr>
+                        <tr>
+                            <td><strong>COMPLEMENTARY</strong> (match with seller)</td>
+                            <td>Seller gets slightly less, or CTFExchange keeps remainder</td>
+                        </tr>
+                        <tr>
+                            <td><strong>MERGE</strong> (redeem tokens for collateral)</td>
+                            <td>CTFExchange keeps the fractional collateral</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="box box-info">
+                <span class="box-title">Internal Balance Ledger</span>
+                <pre style="font-size: 0.85rem; margin: 0.75rem 0;">
+<span class="code-comment">// CTFExchange contract - dust accumulates here</span>
+mapping(address => uint256) public balances;</pre>
+                <p style="margin-top: 0.5rem;">When you buy 18.181818181818181818 shares for $10:</p>
+                <ul style="margin-top: 0.5rem; font-size: 0.9rem;">
+                    <li><strong>You pay:</strong> $10.000000 USDC (transferred to CTFExchange)</li>
+                    <li><strong>You receive:</strong> 18181818181818181818 shares (in 18 decimals)</li>
+                    <li><strong>Dust:</strong> ~$0.00000000000000000001 stays in CTFExchange</li>
+                </ul>
+            </div>
+
+            <h4>Practical Impact</h4>
+            <div class="grid-2">
+                <div class="card">
+                    <h4>Per Trade</h4>
+                    <ul>
+                        <li>Dust amount: ~$0.00000000000000000001</li>
+                        <li>Negligible for individual trades</li>
+                        <li>Not "lost" - just trapped in contract</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <h4>Over Time</h4>
+                    <ul>
+                        <li>Accumulates with each trade</li>
+                        <li>Millions of trades = few cents total</li>
+                        <li>Some protocols implement "dust collection"</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="box box-warning">
+                <span class="box-title">Key Insight</span>
+                <p><strong>Perfect reversibility is impossible</strong> with finite decimals on repeating decimals like
+                    1/0.55, 1/0.33, etc. This is inherent to all fixed-point arithmetic systems on blockchain.</p>
             </div>
         </section>
 
