@@ -75,6 +75,13 @@
                         <li><a href="#bridging-strategy">4.2 Bridging Strategy (CCIP)</a></li>
                     </ul>
                 </div>
+                <div>
+                    <div class="toc-section-title">Part 5: Technical Implementation</div>
+                    <ul>
+                        <li><a href="#market-creation-process">5.1 Market Creation Process</a></li>
+                        <li><a href="#claiming-process">5.2 Claiming Process</a></li>
+                    </ul>
+                </div>
             </div>
         </nav>
 
@@ -3566,6 +3573,165 @@ ETH/USD: 0xF0d50568e3A7e8259E16663972b11910F89BD8e7</pre>
                 <li><strong>Security</strong>: Risk Management Network (secondary validation) prevents hacks common in
                     standard bridges.</li>
             </ul>
+        </section>
+
+        <!-- PART 5: TECHNICAL IMPLEMENTATION -->
+        <div class="part-divider">
+            <h2>Part 5: Technical Implementation</h2>
+            <span class="part-subtitle">System Architecture & Workflows</span>
+        </div>
+
+        <!-- Section 5.1: Market Creation Process -->
+        <section id="market-creation-process" class="part-5-section">
+            <h3><span class="section-num part-5">5.1</span>Market Creation Process (Under the Hood)</h3>
+
+            <h4>The "Gasless" Creator Experience</h4>
+            <p>Nostra abstracts the complexity of blockchain interaction from market creators. When a user clicks "Start
+                Batch Creation", the server handles all on-chain operations asynchronously.</p>
+
+            <div class="diagram">
+                <div class="diagram-title">Batch Creation Workflow</div>
+                <div style="text-align: center; padding: 1.5rem; font-family: var(--font-mono); line-height: 1.8;">
+                    [User Client]<br>
+                    Sends JSON Config (Name, Outcomes, Dates)<br>
+                    ↓<br>
+                    [API Server]<br>
+                    Creates "PENDING" BatchJob in DB<br>
+                    ↓<br>
+                    <span style="color: var(--accent);">[Batch Processor Service]</span><br>
+                    (Running in bg with Server Wallet)<br>
+                    ↓<br>
+                    1. <strong>Blockchain Creation Loop</strong>: Deploys each binary market to MarketFactory<br>
+                    2. <strong>Database Sync</strong>: Records Condition IDs & Token IDs<br>
+                    3. <strong>Liquidity Minting</strong>: Mints USDC → Splits into Yes/No positions<br>
+                    4. <strong>Auto-Seeding</strong>: Places initial Ask/Bid orders on OrderBook<br>
+                    ↓<br>
+                    [Websocket]<br>
+                    Push "COMPLETED" status to Client
+                </div>
+            </div>
+
+            <h4>Step-by-Step Execution</h4>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Step</th>
+                            <th>Action</th>
+                            <th>Status Message</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>1. Init</td>
+                            <td>Processor picks up job</td>
+                            <td><em>"Job started processing"</em></td>
+                        </tr>
+                        <tr>
+                            <td>2. createBinaryMarket</td>
+                            <td>Calls Smart Contract for each outcome</td>
+                            <td><em>"Creating market X/Y: [Name]"</em></td>
+                        </tr>
+                        <tr>
+                            <td>3. Persistence</td>
+                            <td>Saves Group/Markets to PostgreSQL</td>
+                            <td><em>"Saving to database..."</em></td>
+                        </tr>
+                        <tr>
+                            <td>4. Liquidity</td>
+                            <td>Mints collateral & calls `splitPosition`</td>
+                            <td><em>"Minting collateral for market inventory..."</em></td>
+                        </tr>
+                        <tr>
+                            <td>5. Seeding</td>
+                            <td>Places initial limit orders</td>
+                            <td><em>"Seeding initial liquidity..."</em></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h4>Detailed Token Flow: Liquidity & Seeding</h4>
+            <p>To ensure markets are tradable immediately, the <strong>Server Wallet</strong> acts as the initial
+                liquidity provider. This involves a specific sequence of token transfers:</p>
+
+            <div class="grid-2">
+                <div class="card">
+                    <h4>Step 4: Liquidity Provision</h4>
+                    <ul>
+                        <li><strong>Source:</strong> Server Wallet (Operator)</li>
+                        <li><strong>Action:</strong> Calls <code>splitPosition()</code> on CTF</li>
+                        <li><strong>Transfer In:</strong> Sends <strong>USDC</strong> (Collateral) to CTF Contract.</li>
+                        <li><strong>Transfer Out:</strong> Receives newly minted <strong>Position Tokens</strong>
+                            (YES/NO shares) to Server Wallet.</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <h4>Step 5: Seeding Order Book</h4>
+                    <ul>
+                        <li><strong>Source:</strong> Server Wallet (Operator)</li>
+                        <li><strong>Action:</strong> Places Limit Orders (ASKs) via API</li>
+                        <li><strong>Logic:</strong> The Server Wallet offers to sell its held YES/NO tokens at specific
+                            prices (e.g., $0.50).</li>
+                        <li><strong>Result:</strong> Users can buy immediately because the Server Wallet has already
+                            "pre-minted" the inventory.</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 5.2: Claiming Process -->
+        <section id="claiming-process" class="part-5-section">
+            <h3><span class="section-num part-5">5.2</span>Claiming Process (Double Confirmation)</h3>
+
+            <h4>Why two transactions?</h4>
+            <p>Users often ask why claiming winnings requires two wallet confirmations. This is due to the architectural
+                separation between the <strong>Conditional Tokens Framework (CTF)</strong> and the <strong>Nostra
+                    Exchange Contract</strong>.</p>
+
+            <div class="grid-2">
+                <div class="card">
+                    <h4>Transaction 1: Redemption</h4>
+                    <pre style="font-size: 0.8rem;">contract.redeemPositions(...)</pre>
+                    <ul>
+                        <li><strong>From:</strong> CTF Core Contract</li>
+                        <li><strong>To:</strong> User's Wallet</li>
+                        <li><strong>Action:</strong> Burns winning position tokens and releases the collateral (USDC)
+                            directly to the user's wallet.</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <h4>Transaction 2: Auto-Deposit</h4>
+                    <pre style="font-size: 0.8rem;">exchange.deposit(...)</pre>
+                    <ul>
+                        <li><strong>From:</strong> User's Wallet</li>
+                        <li><strong>To:</strong> CTF Exchange Contract</li>
+                        <li><strong>Action:</strong> Moves the just-claimed USDC back into the Exchange balance so it
+                            can be immediately used for new trades.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <h4>Why not automatic deposit?</h4>
+            <p>A common question is: <em>"Why can't the Redemption step automatically send funds to the Exchange?"</em>
+            </p>
+            <ul>
+                <li><strong>Protocol Separation:</strong> The `redeemPositions` function belongs to the standard
+                    <strong>Gnosis CTF Core</strong> contract. This is a neutral, immutable primitive that knows nothing
+                    about our specific Exchange contract.</li>
+                <li><strong>Security & Control:</strong> The CTF contract is designed to return collateral <strong>only
+                        to the token holder</strong>. It cannot be forced to trigger a subsequent deposit into another
+                    contract arbitrarily.</li>
+                <li><strong>Manual Step Required:</strong> Therefore, the user must first receive the funds (Step 1) and
+                    then explicitly approve/deposit them into the Exchange (Step 2).</li>
+            </ul>
+
+            <div class="box box-warning">
+                <span class="box-title">UX Tradeoff</span>
+                <p>We prioritize <strong>continuous trading</strong>. By auto-depositing, we ensure users don't have to
+                    navigate to a separate "Deposit" page to re-use their winnings. The second confirmation ensures
+                    funds are ready for the next bet immediately.</p>
+            </div>
         </section>
 
         <footer>

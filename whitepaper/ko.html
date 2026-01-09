@@ -75,6 +75,13 @@
                         <li><a href="#bridging-strategy">4.2 브릿징 전략 (CCIP)</a></li>
                     </ul>
                 </div>
+                <div>
+                    <div class="toc-section-title">5부: 기술적 구현</div>
+                    <ul>
+                        <li><a href="#market-creation-process">5.1 시장 생성 프로세스</a></li>
+                        <li><a href="#claiming-process">5.2 청구 프로세스</a></li>
+                    </ul>
+                </div>
             </div>
         </nav>
 
@@ -2787,6 +2794,154 @@ ETH/USD: 0xF0d50568e3A7e8259E16663972b11910F89BD8e7</pre>
                 <li><strong>단순화된 UX</strong>: 하나의 트랜잭션으로 "입금 및 베팅" (브릿징 과정 추상화).</li>
                 <li><strong>보안</strong>: 위험 관리 네트워크(RMN, 2차 검증)가 일반적인 브릿지 해킹을 방지합니다.</li>
             </ul>
+        </section>
+
+        <!-- PART 5: 기술적 구현 -->
+        <div class="part-divider">
+            <h2>Part 5: 기술적 구현 (Technical Implementation)</h2>
+            <span class="part-subtitle">시스템 아키텍처 및 워크플로우</span>
+        </div>
+
+        <!-- Section 5.1: 시장 생성 프로세스 -->
+        <section id="market-creation-process" class="part-5-section">
+            <h3><span class="section-num part-5">5.1</span>시장 생성 프로세스 (내부 동작 원리)</h3>
+
+            <h4>"가스비 없는" 생성자 경험</h4>
+            <p>Nostra는 시장 생성자가 블록체인과 직접 상호작용하는 복잡성을 추상화합니다. 사용자가 "배치 생성 시작 (Start Batch Creation)" 버튼을 클릭하면, 서버가 모든 온체인
+                작업을 비동기적으로 처리합니다.</p>
+
+            <div class="diagram">
+                <div class="diagram-title">배치 생성 워크플로우</div>
+                <div style="text-align: center; padding: 1.5rem; font-family: var(--font-mono); line-height: 1.8;">
+                    [사용자 클라이언트]<br>
+                    JSON 설정 전송 (이름, 결과, 날짜)<br>
+                    ↓<br>
+                    [API 서버]<br>
+                    DB에 "PENDING" 상태의 BatchJob 생성<br>
+                    ↓<br>
+                    <span style="color: var(--accent);">[배치 프로세서 서비스]</span><br>
+                    (백그라운드에서 서버 지갑으로 실행)<br>
+                    ↓<br>
+                    1. <strong>블록체인 생성 루프</strong>: 각 바이너리 마켓을 MarketFactory에 배포<br>
+                    2. <strong>데이터베이스 동기화</strong>: Condition ID 및 Token ID 기록<br>
+                    3. <strong>유동성 민팅</strong>: USDC 민팅 → Yes/No 포지션으로 분할 (Split)<br>
+                    4. <strong>자동 시딩 (Auto-Seeding)</strong>: 오더북에 초기 매수/매도 주문 배치<br>
+                    ↓<br>
+                    [웹소켓]<br>
+                    클라이언트에 "COMPLETED" 상태 푸시
+                </div>
+            </div>
+
+            <h4>단계별 실행 내역</h4>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>단계</th>
+                            <th>동작</th>
+                            <th>상태 메시지</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>1. 초기화</td>
+                            <td>프로세서가 작업을 가져옴</td>
+                            <td><em>"Job started processing"</em></td>
+                        </tr>
+                        <tr>
+                            <td>2. createBinaryMarket</td>
+                            <td>각 결과에 대해 스마트 컨트랙트 호출</td>
+                            <td><em>"Creating market X/Y: [Name]"</em></td>
+                        </tr>
+                        <tr>
+                            <td>3. 영속성</td>
+                            <td>그룹/마켓 정보를 PostgreSQL에 저장</td>
+                            <td><em>"Saving to database..."</em></td>
+                        </tr>
+                        <tr>
+                            <td>4. 유동성</td>
+                            <td>담보 민팅 및 `splitPosition` 호출</td>
+                            <td><em>"Minting collateral for market inventory..."</em></td>
+                        </tr>
+                        <tr>
+                            <td>5. 시딩</td>
+                            <td>초기 지정가 주문 배치</td>
+                            <td><em>"Seeding initial liquidity..."</em></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h4>상세 토큰 흐름: 유동성 및 시딩 (Liquidity & Seeding)</h4>
+            <p>시장이 즉시 거래 가능하도록 보장하기 위해, <strong>서버 지갑(Server Wallet)</strong>이 초기 유동성 공급자 역할을 수행합니다. 이는 다음과 같은 구체적인 토큰
+                전송 순서를 포함합니다:</p>
+
+            <div class="grid-2">
+                <div class="card">
+                    <h4>4단계: 유동성 공급 (Liquidity Provision)</h4>
+                    <ul>
+                        <li><strong>출처 (Source):</strong> 서버 지갑 (운영자)</li>
+                        <li><strong>동작:</strong> CTF 컨트랙트의 <code>splitPosition()</code> 호출</li>
+                        <li><strong>전송 (In):</strong> <strong>USDC</strong> (담보)를 CTF 컨트랙트로 전송합니다.</li>
+                        <li><strong>수신 (Out):</strong> 새로 발행된 <strong>포지션 토큰</strong> (YES/NO 주식)을 서버 지갑이 수령합니다.</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <h4>5단계: 오더북 시딩 (Seeding)</h4>
+                    <ul>
+                        <li><strong>출처 (Source):</strong> 서버 지갑 (운영자)</li>
+                        <li><strong>동작:</strong> API를 통해 지정가 매도 주문(ASK) 배치</li>
+                        <li><strong>로직:</strong> 서버 지갑은 보유한 YES/NO 토큰을 특정 가격(예: $0.50)에 매도하겠다고 제안합니다.</li>
+                        <li><strong>결과:</strong> 서버 지갑이 이미 재고를 "사전 발행(pre-mint)" 했으므로 사용자는 즉시 구매할 수 있습니다.</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 5.2: 청구 프로세스 -->
+        <section id="claiming-process" class="part-5-section">
+            <h3><span class="section-num part-5">5.2</span>청구 프로세스 (이중 확인)</h3>
+
+            <h4>왜 두 번의 트랜잭션이 필요한가요?</h4>
+            <p>사용자들은 종종 당첨금 청구 시 지갑 확인이 두 번 필요한 이유를 묻습니다. 이는 <strong>조건부 토큰 프레임워크 (CTF)</strong>와 <strong>Nostra 거래소
+                    컨트랙트</strong> 간의 아키텍처적 분리 때문입니다.</p>
+
+            <div class="grid-2">
+                <div class="card">
+                    <h4>트랜잭션 1: 상환 (Redemption)</h4>
+                    <pre style="font-size: 0.8rem;">contract.redeemPositions(...)</pre>
+                    <ul>
+                        <li><strong>From:</strong> CTF 코어 컨트랙트</li>
+                        <li><strong>To:</strong> 사용자 지갑</li>
+                        <li><strong>동작:</strong> 당첨 포지션 토큰을 소각하고 담보(USDC)를 사용자 지갑으로 직접 해제합니다.</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <h4>트랜잭션 2: 자동 입금 (Auto-Deposit)</h4>
+                    <pre style="font-size: 0.8rem;">exchange.deposit(...)</pre>
+                    <ul>
+                        <li><strong>From:</strong> 사용자 지갑</li>
+                        <li><strong>To:</strong> CTF 거래소 컨트랙트</li>
+                        <li><strong>동작:</strong> 청구된 USDC를 거래소 잔액으로 다시 이동시켜 즉시 새로운 거래에 사용할 수 있게 합니다.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <h4>왜 자동으로 입금되지 않나요?</h4>
+            <p>자주 묻는 질문 중 하나는 <em>"왜 상환(Redemption) 단계에서 자금을 거래소로 자동 전송할 수 없는가?"</em>입니다.</p>
+            <ul>
+                <li><strong>프로토콜 분리:</strong> `redeemPositions` 함수는 표준 <strong>Gnosis CTF Core</strong> 컨트랙트에 속해 있습니다.
+                    이는 중립적이고 불변하는 기초 요소(primitive)로, 우리의 특정 거래소 컨트랙트에 대해 전혀 알지 못합니다.</li>
+                <li><strong>보안 및 제어:</strong> CTF 컨트랙트는 담보를 오직 <strong>토큰 보유자</strong>에게만 반환하도록 설계되었습니다. 임의로 다른 컨트랙트로
+                    입금을 트리거하도록 강제할 수 없습니다.</li>
+                <li><strong>수동 단계 필요:</strong> 따라서 사용자는 먼저 자금을 수령(1단계)한 후, 명시적으로 거래소에 승인/입금(2단계)해야 합니다.</li>
+            </ul>
+
+            <div class="box box-warning">
+                <span class="box-title">UX 트레이드오프</span>
+                <p>우리는 <strong>지속적인 거래</strong>를 최우선으로 합니다. 자동 입금을 통해 사용자가 당첨금을 재사용하기 위해 별도의 "입금" 페이지로 이동할 필요가 없게 합니다. 두
+                    번째 확인은 자금이 다음 베팅을 위해 즉시 준비되도록 보장합니다.</p>
+            </div>
         </section>
 
         <footer>
