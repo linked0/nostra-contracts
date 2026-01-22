@@ -23,6 +23,13 @@ async function main() {
   await mockUSDC.waitForDeployment();
   console.log("Mock USDC deployed to:", await mockUSDC.getAddress());
 
+  // Deploy Alea Token (18 decimals stable token for trading)
+  console.log("\n🪙 Deploying Alea Token...");
+  const AleaToken = await ethers.getContractFactory("AleaToken");
+  const aleaToken = await AleaToken.deploy();
+  await aleaToken.waitForDeployment();
+  console.log("Alea Token deployed to:", await aleaToken.getAddress());
+
   // Deploy ResolutionOracle
   console.log("\n🔮 Deploying ResolutionOracle...");
   const ResolutionOracleFactory = await ethers.getContractFactory("ResolutionOracle");
@@ -71,6 +78,7 @@ async function main() {
     CTFExchange: await ctfExchange.getAddress(),
     ResolutionOracle: await resolutionOracle.getAddress(),
     MockUSDC: await mockUSDC.getAddress(),
+    AleaToken: await aleaToken.getAddress(),
   };
 
   // Write to deployments.json

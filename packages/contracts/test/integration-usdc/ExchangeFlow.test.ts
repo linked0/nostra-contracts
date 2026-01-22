@@ -7,7 +7,7 @@ import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 enum SignatureType { EOA = 0 }
 enum Side { BUY = 0, SELL = 1 }
 
-describe("CTF Exchange - Integration: Complete Order Flow (Alea)", function () {
+describe("CTF Exchange - Integration: Complete Order Flow", function () {
   let exchange: CTFExchange;
   let owner: SignerWithAddress;
   let maker: SignerWithAddress;
@@ -16,14 +16,10 @@ describe("CTF Exchange - Integration: Complete Order Flow (Alea)", function () {
   let conditionalTokens: any;
   let collateralToken: any;
 
-  // Test tokens - will be set after deployment
-  let token0: bigint; // YES token (indexSet 1)
-  let token1: bigint; // NO token (indexSet 2)
-  const questionId = ethers.id("WILL_BTC_HIT_100K");
-  let conditionId: string;
-
-  // Alea token uses 18 decimals
-  const DECIMALS = 18;
+  // Test tokens
+  const token0 = BigInt(ethers.id("YES_TOKEN"));
+  const token1 = BigInt(ethers.id("NO_TOKEN"));
+  const conditionId = ethers.id("WILL_BTC_HIT_100K");
 
   beforeEach(async function () {
     [owner, maker, taker, operator] = await ethers.getSigners();
@@ -33,9 +29,9 @@ describe("CTF Exchange - Integration: Complete Order Flow (Alea)", function () {
     conditionalTokens = await ConditionalTokensFactory.deploy();
     await conditionalTokens.waitForDeployment();
 
-    // Deploy Alea Token (18 decimals)
-    const AleaTokenFactory = await ethers.getContractFactory("AleaToken");
-    collateralToken = await AleaTokenFactory.deploy();
+    // Deploy mock USDC
+    const MockUSDCFactory = await ethers.getContractFactory("MockUSDC");
+    collateralToken = await MockUSDCFactory.deploy();
     await collateralToken.waitForDeployment();
 
     // Deploy CTFExchange
@@ -46,27 +42,17 @@ describe("CTF Exchange - Integration: Complete Order Flow (Alea)", function () {
     );
     await exchange.waitForDeployment();
 
-    // Prepare condition for outcome tokens and get the actual conditionId
-    await conditionalTokens.prepareCondition(owner.address, questionId, 2);
-    conditionId = await conditionalTokens.getConditionId(owner.address, questionId, 2);
-
-    // Calculate actual token IDs from ConditionalTokens
-    const collectionId0 = await conditionalTokens.getCollectionId(ethers.ZeroHash, conditionId, 1);
-    const collectionId1 = await conditionalTokens.getCollectionId(ethers.ZeroHash, conditionId, 2);
-    token0 = await conditionalTokens.getPositionId(await collateralToken.getAddress(), collectionId0);
-    token1 = await conditionalTokens.getPositionId(await collateralToken.getAddress(), collectionId1);
-
     // Register token pair (YES/NO tokens for the condition)
     await exchange.connect(owner).registerToken(token0, token1, conditionId);
 
     // Add operator
     await exchange.connect(owner).addOperator(operator.address);
 
-    // Mint collateral to participants (18 decimals)
-    const mintAmount = ethers.parseUnits("10000", DECIMALS); // 10,000 ALEA
-    await collateralToken.mintForTesting(maker.address, mintAmount);
-    await collateralToken.mintForTesting(taker.address, mintAmount);
-    await collateralToken.mintForTesting(operator.address, mintAmount);
+    // Mint collateral to participants
+    const mintAmount = ethers.parseUnits("10000", 6); // 10,000 USDC
+    await collateralToken.mint(maker.address, mintAmount);
+    await collateralToken.mint(taker.address, mintAmount);
+    await collateralToken.mint(operator.address, mintAmount);
 
     // Approve exchange
     await collateralToken.connect(maker).approve(await exchange.getAddress(), ethers.MaxUint256);
@@ -91,8 +77,8 @@ describe("CTF Exchange - Integration: Complete Order Flow (Alea)", function () {
       signer: overrides.signer || maker.address,
       taker: overrides.taker || ethers.ZeroAddress,
       tokenId: overrides.tokenId || token0,
-      makerAmount: overrides.makerAmount || ethers.parseUnits("100", DECIMALS),
-      takerAmount: overrides.takerAmount || ethers.parseUnits("100", DECIMALS),
+      makerAmount: overrides.makerAmount || ethers.parseUnits("100", 6),
+      takerAmount: overrides.takerAmount || ethers.parseUnits("100", 6),
       expiration: defaultExpiration,
       nonce: overrides.nonce || 0n,
       feeRateBps: overrides.feeRateBps || 0n,
@@ -139,8 +125,8 @@ describe("CTF Exchange - Integration: Complete Order Flow (Alea)", function () {
         maker: maker.address,
         tokenId: token0,
         side: Side.BUY,
-        makerAmount: ethers.parseUnits("100", DECIMALS),
-        takerAmount: ethers.parseUnits("100", DECIMALS)
+        makerAmount: ethers.parseUnits("100", 6),
+        takerAmount: ethers.parseUnits("100", 6)
       });
 
       // Step 2: Sign the order
@@ -349,7 +335,7 @@ describe("CTF Exchange - Integration: Complete Order Flow (Alea)", function () {
 
       // Step 3: Operator should not be able to fill order
       await expect(
-        exchange.connect(operator).fillOrder(signedOrder, ethers.parseUnits("10", DECIMALS))
+        exchange.connect(operator).fillOrder(signedOrder, ethers.parseUnits("10", 6))
       ).to.be.revertedWithCustomError(exchange, "Paused");
 
       // Step 4: Unpause trading
@@ -367,12 +353,12 @@ describe("CTF Exchange - Integration: Complete Order Flow (Alea)", function () {
 
       // Step 2: Non-operator should not be able to fill order
       await expect(
-        exchange.connect(taker).fillOrder(signedOrder, ethers.parseUnits("10", DECIMALS))
+        exchange.connect(taker).fillOrder(signedOrder, ethers.parseUnits("10", 6))
       ).to.be.revertedWithCustomError(exchange, "NotOperator");
 
       // Step 3: Non-operator should not be able to match orders
       await expect(
-        exchange.connect(taker).matchOrders(signedOrder, [signedOrder], ethers.parseUnits("10", DECIMALS), [ethers.parseUnits("10", DECIMALS)])
+        exchange.connect(taker).matchOrders(signedOrder, [signedOrder], ethers.parseUnits("10", 6), [ethers.parseUnits("10", 6)])
       ).to.be.revertedWithCustomError(exchange, "NotOperator");
     });
   });
@@ -388,8 +374,8 @@ describe("CTF Exchange - Integration: Complete Order Flow (Alea)", function () {
         maker: maker.address,
         tokenId: token0,
         side: Side.BUY,
-        makerAmount: ethers.parseUnits("100", DECIMALS),
-        takerAmount: ethers.parseUnits("100", DECIMALS),
+        makerAmount: ethers.parseUnits("100", 6),
+        takerAmount: ethers.parseUnits("100", 6),
         feeRateBps: 100n // 1% fee
       });
 

@@ -40,15 +40,25 @@ function displayNetworkAddresses(network: Network): void {
     'MarketFactory',
     'CTFExchange',
     'ResolutionOracle',
-    'MockUSDC'
+    'MockUSDC',
+    'AleaToken'
   ] as const;
+
+  // Token decimals info
+  const tokenDecimals: { [key: string]: number } = {
+    'MockUSDC': 6,
+    'AleaToken': 18
+  };
 
   for (const contractName of contracts) {
     const address = addresses[contractName]?.address;
+    const decimals = tokenDecimals[contractName];
+    const decimalsInfo = decimals !== undefined ? ` (${decimals} decimals)` : '';
+
     if (address) {
-      console.log(`✅ ${contractName.padEnd(20)} ${address}`);
+      console.log(`✅ ${contractName.padEnd(20)} ${address}${decimalsInfo}`);
     } else {
-      console.log(`⚠️  ${contractName.padEnd(20)} not deployed`);
+      console.log(`⚠️  ${contractName.padEnd(20)} not deployed${decimalsInfo}`);
     }
   }
 }

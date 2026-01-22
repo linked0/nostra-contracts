@@ -15,12 +15,13 @@ export const MarketFactoryABI: any[] = [];
 export const CTFExchangeABI: any[] = [];
 export const ResolutionOracleABI: any[] = [];
 export const MockUSDCABI: any[] = [];
+export const AleaTokenABI: any[] = [];
 
 /**
  * Get ABI for a contract
  */
 export function getContractABI(
-  contractName: 'ConditionalTokens' | 'MarketFactory' | 'CTFExchange' | 'ResolutionOracle' | 'MockUSDC'
+  contractName: 'ConditionalTokens' | 'MarketFactory' | 'CTFExchange' | 'ResolutionOracle' | 'MockUSDC' | 'AleaToken'
 ): any[] {
   switch (contractName) {
     case 'ConditionalTokens':
@@ -33,6 +34,8 @@ export function getContractABI(
       return ResolutionOracleABI;
     case 'MockUSDC':
       return MockUSDCABI;
+    case 'AleaToken':
+      return AleaTokenABI;
     default:
       throw new Error(`Unknown contract: ${contractName}`);
   }

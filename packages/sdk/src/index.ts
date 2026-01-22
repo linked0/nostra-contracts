@@ -10,3 +10,4 @@ export * from './generated/addresses';
 export * from './generated/abis';
 export * from './utils/contracts';
 export * from './types';
+export * from './constants';

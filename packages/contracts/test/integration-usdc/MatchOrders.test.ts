@@ -7,7 +7,7 @@ import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 enum SignatureType { EOA = 0 }
 enum Side { BUY = 0, SELL = 1 }
 
-describe("CTF Exchange - Integration: matchOrders Flow (Alea)", function () {
+describe("CTF Exchange - Integration: matchOrders Flow", function () {
   let exchange: CTFExchange;
   let owner: SignerWithAddress;
   let maker: SignerWithAddress;
@@ -22,9 +22,6 @@ describe("CTF Exchange - Integration: matchOrders Flow (Alea)", function () {
   const questionId = ethers.id("WILL_BTC_HIT_100K");
   let conditionId: string;
 
-  // Alea token uses 18 decimals
-  const DECIMALS = 18;
-
   beforeEach(async function () {
     [owner, maker, taker, operator] = await ethers.getSigners();
 
@@ -33,9 +30,9 @@ describe("CTF Exchange - Integration: matchOrders Flow (Alea)", function () {
     conditionalTokens = await ConditionalTokensFactory.deploy();
     await conditionalTokens.waitForDeployment();
 
-    // Deploy Alea Token (18 decimals)
-    const AleaTokenFactory = await ethers.getContractFactory("AleaToken");
-    collateralToken = await AleaTokenFactory.deploy();
+    // Deploy mock USDC
+    const MockUSDCFactory = await ethers.getContractFactory("MockUSDC");
+    collateralToken = await MockUSDCFactory.deploy();
     await collateralToken.waitForDeployment();
 
     // Deploy CTFExchange
@@ -62,11 +59,11 @@ describe("CTF Exchange - Integration: matchOrders Flow (Alea)", function () {
     // Add operator
     await exchange.connect(owner).addOperator(operator.address);
 
-    // Mint collateral to participants (18 decimals)
-    const mintAmount = ethers.parseUnits("10000", DECIMALS); // 10,000 ALEA
-    await collateralToken.mintForTesting(maker.address, mintAmount);
-    await collateralToken.mintForTesting(taker.address, mintAmount);
-    await collateralToken.mintForTesting(operator.address, mintAmount);
+    // Mint collateral to participants
+    const mintAmount = ethers.parseUnits("10000", 6); // 10,000 USDC
+    await collateralToken.mint(maker.address, mintAmount);
+    await collateralToken.mint(taker.address, mintAmount);
+    await collateralToken.mint(operator.address, mintAmount);
 
     // Approve collateral for ConditionalTokens (for splitting)
     await collateralToken.connect(maker).approve(await conditionalTokens.getAddress(), ethers.MaxUint256);
@@ -84,7 +81,7 @@ describe("CTF Exchange - Integration: matchOrders Flow (Alea)", function () {
     await conditionalTokens.connect(operator).setApprovalForAll(await exchange.getAddress(), true);
 
     // Deposit collateral into the exchange (required for internal balance system)
-    const depositAmount = ethers.parseUnits("5000", DECIMALS); // 5,000 ALEA each
+    const depositAmount = ethers.parseUnits("5000", 6); // 5,000 USDC each
     await exchange.connect(maker).deposit(depositAmount);
     await exchange.connect(taker).deposit(depositAmount);
     await exchange.connect(operator).deposit(depositAmount);
@@ -95,7 +92,7 @@ describe("CTF Exchange - Integration: matchOrders Flow (Alea)", function () {
       ethers.ZeroHash,  // parentCollectionId
       conditionId,
       [1, 2],  // partition (binary outcomes)
-      ethers.parseUnits("1000", DECIMALS)  // amount
+      ethers.parseUnits("1000", 6)  // amount
     );
 
     await conditionalTokens.connect(taker).splitPosition(
@@ -103,7 +100,7 @@ describe("CTF Exchange - Integration: matchOrders Flow (Alea)", function () {
       ethers.ZeroHash,
       conditionId,
       [1, 2],
-      ethers.parseUnits("1000", DECIMALS)
+      ethers.parseUnits("1000", 6)
     );
 
     await conditionalTokens.connect(operator).splitPosition(
@@ -111,7 +108,7 @@ describe("CTF Exchange - Integration: matchOrders Flow (Alea)", function () {
       ethers.ZeroHash,
       conditionId,
       [1, 2],
-      ethers.parseUnits("1000", DECIMALS)
+      ethers.parseUnits("1000", 6)
     );
   });
 
@@ -127,8 +124,8 @@ describe("CTF Exchange - Integration: matchOrders Flow (Alea)", function () {
       signer: overrides.signer || maker.address,
       taker: overrides.taker || ethers.ZeroAddress,
       tokenId: overrides.tokenId || token0,
-      makerAmount: overrides.makerAmount || ethers.parseUnits("100", DECIMALS),
-      takerAmount: overrides.takerAmount || ethers.parseUnits("100", DECIMALS),
+      makerAmount: overrides.makerAmount || ethers.parseUnits("100", 6),
+      takerAmount: overrides.takerAmount || ethers.parseUnits("100", 6),
       expiration: defaultExpiration,
       nonce: overrides.nonce || 0n,
       feeRateBps: overrides.feeRateBps || 0n,
@@ -179,8 +176,8 @@ describe("CTF Exchange - Integration: matchOrders Flow (Alea)", function () {
         maker: maker.address,
         tokenId: token0,
         side: Side.SELL,
-        makerAmount: ethers.parseUnits("100", DECIMALS), // Bob gives 100 YES tokens
-        takerAmount: ethers.parseUnits("60", DECIMALS),  // Bob receives 60 ALEA (0.60 per token)
+        makerAmount: ethers.parseUnits("100", 6), // Bob gives 100 YES tokens
+        takerAmount: ethers.parseUnits("60", 6),  // Bob receives 60 USDC (0.60 per token)
         feeRateBps: 100n, // 1% fee
         nonce: 0n
       });
@@ -195,8 +192,8 @@ describe("CTF Exchange - Integration: matchOrders Flow (Alea)", function () {
         maker: taker.address,
         tokenId: token0,
         side: Side.BUY,
-        makerAmount: ethers.parseUnits("60", DECIMALS),  // Alice gives 60 ALEA
-        takerAmount: ethers.parseUnits("100", DECIMALS), // Alice receives 100 YES tokens
+        makerAmount: ethers.parseUnits("60", 6),  // Alice gives 60 USDC
+        takerAmount: ethers.parseUnits("100", 6), // Alice receives 100 YES tokens
         feeRateBps: 100n, // 1% fee
         nonce: 0n
       });
@@ -205,9 +202,9 @@ describe("CTF Exchange - Integration: matchOrders Flow (Alea)", function () {
       const signedTakerOrder = { ...takerOrder, signature: takerSig };
 
       // Step 3: Record initial balances (use exchange internal balances for collateral)
-      const takerALEABefore = await exchange.balances(taker.address);
+      const takerUSDCBefore = await exchange.balances(taker.address);
       const takerYESBefore = await conditionalTokens.balanceOf(taker.address, token0);
-      const makerALEABefore = await exchange.balances(maker.address);
+      const makerUSDCBefore = await exchange.balances(maker.address);
       const makerYESBefore = await conditionalTokens.balanceOf(maker.address, token0);
       const operatorYESBefore = await conditionalTokens.balanceOf(operator.address, token0);
 
@@ -216,29 +213,29 @@ describe("CTF Exchange - Integration: matchOrders Flow (Alea)", function () {
         exchange.connect(operator).matchOrders(
           signedTakerOrder,
           [signedMakerOrder],
-          ethers.parseUnits("60", DECIMALS),  // Taker fill amount (ALEA)
-          [ethers.parseUnits("100", DECIMALS)] // Maker fill amounts (YES tokens)
+          ethers.parseUnits("60", 6),  // Taker fill amount (USDC)
+          [ethers.parseUnits("100", 6)] // Maker fill amounts (YES tokens)
         )
       ).to.emit(exchange, "OrdersMatched");
 
       // Step 5: Verify balance changes (use exchange internal balances for collateral)
-      const takerALEAAfter = await exchange.balances(taker.address);
+      const takerUSDCAfter = await exchange.balances(taker.address);
       const takerYESAfter = await conditionalTokens.balanceOf(taker.address, token0);
-      const makerALEAAfter = await exchange.balances(maker.address);
+      const makerUSDCAfter = await exchange.balances(maker.address);
       const makerYESAfter = await conditionalTokens.balanceOf(maker.address, token0);
       const operatorYESAfter = await conditionalTokens.balanceOf(operator.address, token0);
 
       // Alice (taker) gave collateral, received YES tokens (minus fee)
       // The exchange calculates actual fill based on order matching logic
-      expect(takerALEABefore - takerALEAAfter).to.equal(ethers.parseUnits("59.6", DECIMALS));
-      expect(takerYESAfter - takerYESBefore).to.equal(99333333333333333334n);
+      expect(takerUSDCBefore - takerUSDCAfter).to.equal(ethers.parseUnits("59.6", 6));
+      expect(takerYESAfter - takerYESBefore).to.equal(99333334n);
 
       // Bob (maker) gave 100 YES, received collateral (based on exchange calculation)
-      expect(makerYESBefore - makerYESAfter).to.equal(ethers.parseUnits("100", DECIMALS));
-      expect(makerALEAAfter - makerALEABefore).to.equal(ethers.parseUnits("59.6", DECIMALS));
+      expect(makerYESBefore - makerYESAfter).to.equal(ethers.parseUnits("100", 6));
+      expect(makerUSDCAfter - makerUSDCBefore).to.equal(ethers.parseUnits("59.6", 6));
 
       // Operator received fee (based on exchange calculation)
-      expect(operatorYESAfter - operatorYESBefore).to.equal(666666666666666666n);
+      expect(operatorYESAfter - operatorYESBefore).to.equal(666666n);
 
       // Step 6: Verify maker order is marked as filled
       const makerHash = await exchange.hashOrder(makerOrder);
@@ -256,8 +253,8 @@ describe("CTF Exchange - Integration: matchOrders Flow (Alea)", function () {
       const maker3 = signers[5]; // Dave
 
       // Setup additional makers (mint collateral, split into outcome tokens, approve)
-      await collateralToken.mintForTesting(maker2.address, ethers.parseUnits("10000", DECIMALS));
-      await collateralToken.mintForTesting(maker3.address, ethers.parseUnits("10000", DECIMALS));
+      await collateralToken.mint(maker2.address, ethers.parseUnits("10000", 6));
+      await collateralToken.mint(maker3.address, ethers.parseUnits("10000", 6));
 
       await collateralToken.connect(maker2).approve(await conditionalTokens.getAddress(), ethers.MaxUint256);
       await collateralToken.connect(maker3).approve(await conditionalTokens.getAddress(), ethers.MaxUint256);
@@ -267,7 +264,7 @@ describe("CTF Exchange - Integration: matchOrders Flow (Alea)", function () {
         ethers.ZeroHash,
         conditionId,
         [1, 2],
-        ethers.parseUnits("1000", DECIMALS)
+        ethers.parseUnits("1000", 6)
       );
 
       await conditionalTokens.connect(maker3).splitPosition(
@@ -275,7 +272,7 @@ describe("CTF Exchange - Integration: matchOrders Flow (Alea)", function () {
         ethers.ZeroHash,
         conditionId,
         [1, 2],
-        ethers.parseUnits("1000", DECIMALS)
+        ethers.parseUnits("1000", 6)
       );
 
       await collateralToken.connect(maker2).approve(await exchange.getAddress(), ethers.MaxUint256);
@@ -291,8 +288,8 @@ describe("CTF Exchange - Integration: matchOrders Flow (Alea)", function () {
         maker: maker.address,
         tokenId: token0,
         side: Side.SELL,
-        makerAmount: ethers.parseUnits("40", DECIMALS),  // 40 YES
-        takerAmount: ethers.parseUnits("24", DECIMALS),  // 24 ALEA (0.60 per token)
+        makerAmount: ethers.parseUnits("40", 6),  // 40 YES
+        takerAmount: ethers.parseUnits("24", 6),  // 24 USDC (0.60 per token)
         feeRateBps: 100n,
         nonce: 0n
       });
@@ -304,8 +301,8 @@ describe("CTF Exchange - Integration: matchOrders Flow (Alea)", function () {
         maker: maker2.address,
         tokenId: token0,
         side: Side.SELL,
-        makerAmount: ethers.parseUnits("35", DECIMALS),  // 35 YES
-        takerAmount: ethers.parseUnits("21.35", DECIMALS), // 21.35 ALEA (0.61 per token)
+        makerAmount: ethers.parseUnits("35", 6),  // 35 YES
+        takerAmount: ethers.parseUnits("21.35", 6), // 21.35 USDC (0.61 per token)
         feeRateBps: 100n,
         nonce: 0n
       });
@@ -317,8 +314,8 @@ describe("CTF Exchange - Integration: matchOrders Flow (Alea)", function () {
         maker: maker3.address,
         tokenId: token0,
         side: Side.SELL,
-        makerAmount: ethers.parseUnits("25", DECIMALS),  // 25 YES
-        takerAmount: ethers.parseUnits("15.50", DECIMALS), // 15.50 ALEA (0.62 per token)
+        makerAmount: ethers.parseUnits("25", 6),  // 25 YES
+        takerAmount: ethers.parseUnits("15.50", 6), // 15.50 USDC (0.62 per token)
         feeRateBps: 100n,
         nonce: 0n
       });
@@ -335,8 +332,8 @@ describe("CTF Exchange - Integration: matchOrders Flow (Alea)", function () {
         maker: taker.address,
         tokenId: token0,
         side: Side.BUY,
-        makerAmount: ethers.parseUnits("62", DECIMALS),   // Alice gives 62 ALEA (0.62 per token to cross all asks)
-        takerAmount: ethers.parseUnits("100", DECIMALS),  // Alice wants 100 YES
+        makerAmount: ethers.parseUnits("62", 6),   // Alice gives 62 USDC (0.62 per token to cross all asks)
+        takerAmount: ethers.parseUnits("100", 6),  // Alice wants 100 YES
         feeRateBps: 100n,
         nonce: 0n
       });
@@ -359,11 +356,11 @@ describe("CTF Exchange - Integration: matchOrders Flow (Alea)", function () {
             { ...carolOrder, signature: carolSig },
             { ...daveOrder, signature: daveSig }
           ],
-          ethers.parseUnits("62", DECIMALS),  // Total ALEA Alice spends
+          ethers.parseUnits("62", 6),  // Total USDC Alice spends
           [
-            ethers.parseUnits("40", DECIMALS),   // Take 40 YES from Bob
-            ethers.parseUnits("35", DECIMALS),   // Take 35 YES from Carol
-            ethers.parseUnits("25", DECIMALS)    // Take 25 YES from Dave
+            ethers.parseUnits("40", 6),   // Take 40 YES from Bob
+            ethers.parseUnits("35", 6),   // Take 35 YES from Carol
+            ethers.parseUnits("25", 6)    // Take 25 YES from Dave
           ]
         )
       ).to.emit(exchange, "OrdersMatched");
@@ -377,19 +374,19 @@ describe("CTF Exchange - Integration: matchOrders Flow (Alea)", function () {
 
       // Alice received YES tokens (total 100 minus fees based on exchange calculation)
       // The exchange calculates fees per matched order proportionally
-      expect(aliceYESAfter - aliceYESBefore).to.equal(99387096774193548388n);
+      expect(aliceYESAfter - aliceYESBefore).to.equal(99387097n);
 
       // Bob gave 40 YES
-      expect(bobYESBefore - bobYESAfter).to.equal(ethers.parseUnits("40", DECIMALS));
+      expect(bobYESBefore - bobYESAfter).to.equal(ethers.parseUnits("40", 6));
 
       // Carol gave 35 YES
-      expect(carolYESBefore - carolYESAfter).to.equal(ethers.parseUnits("35", DECIMALS));
+      expect(carolYESBefore - carolYESAfter).to.equal(ethers.parseUnits("35", 6));
 
       // Dave gave 25 YES
-      expect(daveYESBefore - daveYESAfter).to.equal(ethers.parseUnits("25", DECIMALS));
+      expect(daveYESBefore - daveYESAfter).to.equal(ethers.parseUnits("25", 6));
 
       // Operator received fee (based on exchange calculation)
-      expect(operatorYESAfter - operatorYESBefore).to.equal(612903225806451612n);
+      expect(operatorYESAfter - operatorYESBefore).to.equal(612903n);
 
       // Verify all maker orders are marked as filled
       const bobHash = await exchange.hashOrder(bobOrder);
@@ -431,8 +428,8 @@ describe("CTF Exchange - Integration: matchOrders Flow (Alea)", function () {
         exchange.connect(operator).matchOrders(
           { ...takerOrder, signature: takerSig },
           [{ ...makerOrder, signature: makerSig }],
-          ethers.parseUnits("100", DECIMALS),
-          [ethers.parseUnits("100", DECIMALS)]
+          ethers.parseUnits("100", 6),
+          [ethers.parseUnits("100", 6)]
         )
       ).to.be.revertedWithCustomError(exchange, "InvalidNonce");
     });
@@ -466,8 +463,8 @@ describe("CTF Exchange - Integration: matchOrders Flow (Alea)", function () {
         exchange.connect(operator).matchOrders(
           { ...takerOrder, signature: takerSig },
           [{ ...expiredOrder, signature: expiredSig }],
-          ethers.parseUnits("100", DECIMALS),
-          [ethers.parseUnits("100", DECIMALS)]
+          ethers.parseUnits("100", 6),
+          [ethers.parseUnits("100", 6)]
         )
       ).to.be.revertedWithCustomError(exchange, "OrderExpired");
     });
@@ -483,8 +480,8 @@ describe("CTF Exchange - Integration: matchOrders Flow (Alea)", function () {
         exchange.connect(taker).matchOrders(
           { ...takerOrder, signature: takerSig },
           [{ ...makerOrder, signature: makerSig }],
-          ethers.parseUnits("100", DECIMALS),
-          [ethers.parseUnits("100", DECIMALS)]
+          ethers.parseUnits("100", 6),
+          [ethers.parseUnits("100", 6)]
         )
       ).to.be.revertedWithCustomError(exchange, "NotOperator");
     });

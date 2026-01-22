@@ -30,6 +30,7 @@ export interface NetworkDeployment {
     CTFExchange: ContractDeployment;
     ResolutionOracle: ContractDeployment;
     MockUSDC?: ContractDeployment;
+    AleaToken?: ContractDeployment;
   };
 }
 

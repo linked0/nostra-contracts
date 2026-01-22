@@ -17,6 +17,7 @@ export interface NetworkDeployment {
     CTFExchange?: string;
     ResolutionOracle: string;
     MockUSDC?: string;
+    AleaToken?: string;
   };
 }
 
@@ -30,6 +31,7 @@ export interface DeployedContracts {
   CTFExchange?: string;
   ResolutionOracle: string;
   MockUSDC?: string;
+  AleaToken?: string;
 }
 
 /**
@@ -87,6 +89,7 @@ export function writeDeployment(
       ResolutionOracle: contracts.ResolutionOracle,
       ...(contracts.CTFExchange && contracts.CTFExchange !== ethers.ZeroAddress && { CTFExchange: contracts.CTFExchange }),
       ...(contracts.MockUSDC && { MockUSDC: contracts.MockUSDC }),
+      ...(contracts.AleaToken && { AleaToken: contracts.AleaToken }),
     },
   };
 
@@ -115,6 +118,9 @@ export function displayDeployment(network: string, contracts: DeployedContracts)
   console.log(`ResolutionOracle:  ${contracts.ResolutionOracle}`);
   if (contracts.MockUSDC) {
     console.log(`MockUSDC:          ${contracts.MockUSDC}`);
+  }
+  if (contracts.AleaToken) {
+    console.log(`AleaToken:         ${contracts.AleaToken}`);
   }
   console.log('─'.repeat(80));
 }

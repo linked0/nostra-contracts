@@ -58,6 +58,14 @@ async function main() {
   const mockUSDCAddress = await mockUSDC.getAddress();
   console.log("✅ Mock USDC deployed to:", mockUSDCAddress);
 
+  // Deploy Alea Token (18 decimals stable token for trading)
+  console.log("\n🪙 Deploying Alea Token (testnet)...");
+  const AleaToken = await ethers.getContractFactory("AleaToken");
+  const aleaToken = await AleaToken.deploy();
+  await aleaToken.waitForDeployment();
+  const aleaTokenAddress = await aleaToken.getAddress();
+  console.log("✅ Alea Token deployed to:", aleaTokenAddress);
+
   // Deploy ResolutionOracle
   console.log("\n🔮 Deploying ResolutionOracle...");
   const ResolutionOracleFactory = await ethers.getContractFactory("ResolutionOracle");
@@ -122,6 +130,7 @@ async function main() {
     CTFExchange: ctfExchangeAddress,
     ResolutionOracle: resolutionOracleAddress,
     MockUSDC: mockUSDCAddress,
+    AleaToken: aleaTokenAddress,
   };
 
   // Write to deployments.json
@@ -140,6 +149,7 @@ async function main() {
   console.log("\n2. Optional - Verify contracts on BSCScan Testnet:");
   console.log(`\nnpx hardhat verify --network bscTestnet ${conditionalTokensAddress}`);
   console.log(`\nnpx hardhat verify --network bscTestnet ${mockUSDCAddress}`);
+  console.log(`\nnpx hardhat verify --network bscTestnet ${aleaTokenAddress}`);
   console.log(`\nnpx hardhat verify --network bscTestnet ${resolutionOracleAddress} "${conditionalTokensAddress}"`);
   console.log(`\nnpx hardhat verify --network bscTestnet ${marketFactoryAddress} "${conditionalTokensAddress}" "${mockUSDCAddress}" "${resolutionOracleAddress}"`);
   console.log(`\nnpx hardhat verify --network bscTestnet ${ctfExchangeAddress} "${mockUSDCAddress}" "${conditionalTokensAddress}"`);

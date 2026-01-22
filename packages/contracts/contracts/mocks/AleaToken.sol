@@ -5,15 +5,18 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
 /**
- * @title Mock USDC
- * @notice Mock USDC token for testing purposes
- * @dev 6 decimals like real USDC
+ * @title Alea Token
+ * @notice Stable token for trading in Nostra prediction market
+ * @dev 18 decimals (standard ERC20)
+ *
+ * Name: Alea (Latin for "dice", "chance", "risk")
+ * Reference: "Alea iacta est" (The die is cast) - Julius Caesar
  */
-contract MockUSDC is ERC20, Ownable {
-    uint8 private constant _DECIMALS = 6;
-    
-    constructor() ERC20("Mock USD Coin", "mUSDC") Ownable(msg.sender) {
-        // Mint 1,000,000 USDC to deployer
+contract AleaToken is ERC20, Ownable {
+    uint8 private constant _DECIMALS = 18;
+
+    constructor() ERC20("Alea", "ALEA") Ownable(msg.sender) {
+        // Mint 1,000,000 ALEA to deployer
         _mint(msg.sender, 1_000_000 * 10**_DECIMALS);
     }
 

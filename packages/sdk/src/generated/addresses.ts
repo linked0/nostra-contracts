@@ -22,6 +22,7 @@ interface NetworkDeployment {
     CTFExchange: string;
     ResolutionOracle: string;
     MockUSDC?: string;
+    AleaToken?: string;
   };
 }
 
@@ -85,6 +86,9 @@ function buildDeployments(): Deployments {
         ...(deployment.contracts.MockUSDC && {
           MockUSDC: createDeployment(deployment.contracts.MockUSDC),
         }),
+        ...(deployment.contracts.AleaToken && {
+          AleaToken: createDeployment(deployment.contracts.AleaToken),
+        }),
       },
     };
   }
@@ -104,7 +108,7 @@ export const deployments: Deployments = buildDeployments();
  */
 export function getContractAddress(
   network: Network,
-  contractName: 'ConditionalTokens' | 'MarketFactory' | 'CTFExchange' | 'ResolutionOracle' | 'MockUSDC'
+  contractName: 'ConditionalTokens' | 'MarketFactory' | 'CTFExchange' | 'ResolutionOracle' | 'MockUSDC' | 'AleaToken'
 ): string | undefined {
   return deployments[network]?.contracts[contractName]?.address;
 }
