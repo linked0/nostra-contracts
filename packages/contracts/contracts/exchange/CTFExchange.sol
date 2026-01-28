@@ -13,6 +13,9 @@ import "./mixins/NonceManager.sol";
 import "./mixins/AssetOperations.sol";
 import "./BaseExchange.sol";
 import {Order} from "./libraries/OrderStructs.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
 import "@openzeppelin/contracts/utils/Multicall.sol";
 
 /// @title CTF Exchange
@@ -32,6 +35,10 @@ contract CTFExchange is
     Signatures,
     Trading
 {
+    using SafeERC20 for IERC20;
+
+    event RefundToExchange(address indexed user, bytes32 indexed conditionId, uint256 amount);
+
     constructor(address _collateral, address _ctf) Assets(_collateral, _ctf) {}
 
     /// @notice Resolve function conflicts - use concrete implementations from mixins
@@ -168,9 +175,78 @@ contract CTFExchange is
         _deposit(msg.sender, amount);
     }
 
+    /// @notice Deposits collateral from admin and credits a user's exchange balance
+    /// @param user The user to credit
+    /// @param amount The amount to deposit
+    function depositFor(address user, uint256 amount) external nonReentrant notPaused onlyAdmin {
+        require(user != address(0), "Invalid user");
+        require(amount > 0, "Amount must be greater than 0");
+
+        IERC20(getCollateral()).safeTransferFrom(msg.sender, address(this), amount);
+        balances[user] += amount;
+
+        emit Deposit(user, amount);
+    }
+
+    /// @notice Refunds resolved positions and credits the user's exchange balance
+    /// @param conditionId The resolved condition to redeem
+    /// @param indexSets Outcome index sets to redeem (e.g., [1,2] for binary)
+    function refundToExchange(bytes32 conditionId, uint256[] calldata indexSets)
+        external
+        nonReentrant
+        notPaused
+    {
+        _refundToExchange(msg.sender, conditionId, indexSets);
+    }
+
+    /// @notice Admin refunds resolved positions and credits a user's exchange balance
+    /// @param user The user to refund
+    /// @param conditionId The resolved condition to redeem
+    /// @param indexSets Outcome index sets to redeem (e.g., [1,2] for binary)
+    function refundToExchangeFor(address user, bytes32 conditionId, uint256[] calldata indexSets)
+        external
+        nonReentrant
+        notPaused
+        onlyAdmin
+    {
+        _refundToExchange(user, conditionId, indexSets);
+    }
+
     /// @notice Withdraws collateral from the exchange
     /// @param amount The amount to withdraw
     function withdraw(uint256 amount) external nonReentrant {
         _withdraw(msg.sender, amount);
+    }
+
+    function _refundToExchange(address user, bytes32 conditionId, uint256[] calldata indexSets) internal {
+        require(indexSets.length > 0, "No index sets");
+
+        IConditionalTokens ctf = IConditionalTokens(getCtf());
+        uint256 payoutDenominator = ctf.payoutDenominator(conditionId);
+        require(payoutDenominator > 0, "Condition not resolved");
+
+        IERC1155 ctf1155 = IERC1155(getCtf());
+        require(ctf1155.isApprovedForAll(user, address(this)), "Approval required");
+
+        uint256 beforeBalance = IERC20(getCollateral()).balanceOf(address(this));
+
+        for (uint256 i = 0; i < indexSets.length; i++) {
+            bytes32 collectionId = ctf.getCollectionId(parentCollectionId, conditionId, indexSets[i]);
+            uint256 positionId = ctf.getPositionId(IERC20(getCollateral()), collectionId);
+            uint256 balance = ctf1155.balanceOf(user, positionId);
+            if (balance > 0) {
+                ctf1155.safeTransferFrom(user, address(this), positionId, balance, "");
+            }
+        }
+
+        ctf.redeemPositions(IERC20(getCollateral()), parentCollectionId, conditionId, indexSets);
+
+        uint256 afterBalance = IERC20(getCollateral()).balanceOf(address(this));
+        uint256 redeemed = afterBalance - beforeBalance;
+        require(redeemed > 0, "No collateral redeemed");
+
+        balances[user] += redeemed;
+        emit Deposit(user, redeemed);
+        emit RefundToExchange(user, conditionId, redeemed);
     }
 }

@@ -55,6 +55,22 @@ interface ICTFExchange {
     /// @param orders - The orders to be cancelled
     function cancelOrders(Order[] memory orders) external;
 
+    /// @notice Refunds resolved positions and credits the caller's exchange balance
+    /// @param conditionId - The resolved condition to redeem
+    /// @param indexSets - Outcome index sets to redeem
+    function refundToExchange(bytes32 conditionId, uint256[] calldata indexSets) external;
+
+    /// @notice Deposits collateral from admin and credits a user's exchange balance
+    /// @param user - The user to credit
+    /// @param amount - The amount to deposit
+    function depositFor(address user, uint256 amount) external;
+
+    /// @notice Admin refunds resolved positions and credits a user's exchange balance
+    /// @param user - The user to refund
+    /// @param conditionId - The resolved condition to redeem
+    /// @param indexSets - Outcome index sets to redeem
+    function refundToExchangeFor(address user, bytes32 conditionId, uint256[] calldata indexSets) external;
+
     /// @notice Validates an order
     /// @param order - The order to be validated
     function validateOrder(Order memory order) external view;

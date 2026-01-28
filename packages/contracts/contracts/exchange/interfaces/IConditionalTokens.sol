@@ -30,4 +30,15 @@ interface IConditionalTokens {
         external
         view
         returns (bytes32);
+
+    /// @notice Redeem positions after resolution
+    function redeemPositions(
+        IERC20 collateralToken,
+        bytes32 parentCollectionId,
+        bytes32 conditionId,
+        uint256[] calldata indexSets
+    ) external;
+
+    /// @notice Get payout denominator for a resolved condition
+    function payoutDenominator(bytes32 conditionId) external view returns (uint256);
 }
