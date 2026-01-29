@@ -32,7 +32,7 @@ describe("MockUSDC", function () {
 
     it("Should mint initial supply to owner", async function () {
       const ownerBalance = await mockUSDC.balanceOf(owner.address);
-      expect(ownerBalance).to.equal(ethers.parseUnits("1000000", 6));
+      expect(ownerBalance).to.equal(ethers.parseUnits("1000000000", 6));
     });
   });
 

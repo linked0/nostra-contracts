@@ -32,7 +32,7 @@ describe("AleaToken", function () {
 
     it("Should mint initial supply to owner", async function () {
       const ownerBalance = await aleaToken.balanceOf(owner.address);
-      expect(ownerBalance).to.equal(ethers.parseUnits("1000000", 18));
+      expect(ownerBalance).to.equal(ethers.parseUnits("1000000000", 18));
     });
   });
 

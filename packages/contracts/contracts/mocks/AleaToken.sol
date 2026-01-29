@@ -14,10 +14,11 @@ import "@openzeppelin/contracts/access/Ownable.sol";
  */
 contract AleaToken is ERC20, Ownable {
     uint8 private constant _DECIMALS = 18;
+    uint256 public constant INITIAL_SUPPLY = 1_000_000_000 * 10 ** uint256(_DECIMALS);
 
     constructor() ERC20("Alea", "ALEA") Ownable(msg.sender) {
-        // Mint 1,000,000 ALEA to deployer
-        _mint(msg.sender, 1_000_000 * 10**_DECIMALS);
+        // Mint initial supply to deployer
+        _mint(msg.sender, INITIAL_SUPPLY);
     }
 
     function decimals() public pure override returns (uint8) {
