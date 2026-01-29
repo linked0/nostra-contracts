@@ -1,6 +1,6 @@
 {
   "name": "@nostra-dev/sdk",
-  "version": "0.9.4",
+  "version": "0.9.5",
   "description": "TypeScript SDK for interacting with Nostra Prediction Market contracts",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -29,7 +29,7 @@
   "homepage": "https://nostra.market",
   "repository": {
     "type": "git",
-    "url": "https://github.com/sapiens-ai/nostra-contracts"
+    "url": "git+https://github.com/sapiens-ai/nostra-contracts.git"
   },
   "license": "MIT",
   "files": [

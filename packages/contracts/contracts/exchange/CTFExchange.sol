@@ -38,6 +38,7 @@ contract CTFExchange is
     using SafeERC20 for IERC20;
 
     event RefundToExchange(address indexed user, bytes32 indexed conditionId, uint256 amount);
+    event AdminBalanceTransfer(address indexed from, address indexed to, uint256 amount);
 
     constructor(address _collateral, address _ctf) Assets(_collateral, _ctf) {}
 
@@ -186,6 +187,26 @@ contract CTFExchange is
         balances[user] += amount;
 
         emit Deposit(user, amount);
+    }
+
+    /// @notice Admin transfer between internal balances (penalties, adjustments)
+    /// @param from The user to debit
+    /// @param to The user to credit
+    /// @param amount The amount to transfer
+    function adminTransferBalance(address from, address to, uint256 amount)
+        external
+        nonReentrant
+        notPaused
+        onlyAdmin
+    {
+        require(from != address(0) && to != address(0), "Invalid address");
+        require(amount > 0, "Amount must be greater than 0");
+        require(balances[from] >= amount, "Insufficient balance");
+
+        balances[from] -= amount;
+        balances[to] += amount;
+
+        emit AdminBalanceTransfer(from, to, amount);
     }
 
     /// @notice Refunds resolved positions and credits the user's exchange balance

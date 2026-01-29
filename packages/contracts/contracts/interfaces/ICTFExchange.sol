@@ -65,6 +65,12 @@ interface ICTFExchange {
     /// @param amount - The amount to deposit
     function depositFor(address user, uint256 amount) external;
 
+    /// @notice Admin transfer between internal balances (penalties, adjustments)
+    /// @param from - The user to debit
+    /// @param to - The user to credit
+    /// @param amount - The amount to transfer
+    function adminTransferBalance(address from, address to, uint256 amount) external;
+
     /// @notice Admin refunds resolved positions and credits a user's exchange balance
     /// @param user - The user to refund
     /// @param conditionId - The resolved condition to redeem
